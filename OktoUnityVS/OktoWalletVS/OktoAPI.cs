@@ -26,11 +26,11 @@ namespace OktoWallet.OktoSDK
 
         private string GetBaseUrl(string buildType)
         {
-            if (buildType == "production")
+            if (buildType == "Production")
             {
                 return "https://apigw.okto.tech";
             }
-            else if (buildType == "staging")
+            else if (buildType == "Staging")
             {
                 return "https://3p-bff.oktostage.com";
             }
@@ -61,6 +61,102 @@ namespace OktoWallet.OktoSDK
         private async Task SaveAuthDetailsToLocalStorage(AuthDetails details)
         {
             string authDetailsJson = JsonConvert.SerializeObject(details);
+        }
+
+
+        public async Task<(object result, Exception error)> AuthenticateAsync(string idToken)
+        {
+            if (httpClient == null)
+            {
+                return (null, new Exception("SDK is not initialized"));
+            }
+
+            try
+            {
+                var requestBody = new
+                {
+                    id_token = idToken
+                };
+                var jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+
+                httpClient.DefaultRequestHeaders.Clear();
+                httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+                httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
+
+                var response = await httpClient.PostAsync($"{baseUrl}/api/v2/authenticate", jsonContent);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseData = JsonConvert.DeserializeObject<dynamic>(await response.Content.ReadAsStringAsync());
+                    if (responseData?.status == "success")
+                    {
+                        if (responseData?.data?.auth_token != null)
+                        {
+                            var authDetailsNew = new AuthDetails
+                            {
+                                AuthToken = responseData.data.auth_token,
+                                RefreshToken = responseData.data.refresh_auth_token,
+                                DeviceToken = responseData.data.device_token
+                            };
+                            UpdateAuthDetails(authDetailsNew);
+                            return (authDetailsNew, null);
+                        }
+                        
+                    }
+                    return (null, new Exception("Server responded with an error"));
+                }
+                return (null, new Exception("Server responded with an error"));
+            }
+            catch (Exception ex)
+            {
+                return (null, ex);
+            }
+        }
+
+        public async Task<(object result, Exception error)> AuthenticateWithUserIdAsync(string userId, string jwtToken)
+        {
+            if (httpClient == null)
+            {
+                return (null, new Exception("SDK is not initialized"));
+            }
+
+            try
+            {
+                var requestBody = new
+                {
+                    user_id = userId,
+                    auth_token = jwtToken
+                };
+                var jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+
+                httpClient.DefaultRequestHeaders.Clear();
+                httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+                httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
+
+                var response = await httpClient.PostAsync($"{baseUrl}/api/v1/jwt-authenticate", jsonContent);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseData = JsonConvert.DeserializeObject<dynamic>(await response.Content.ReadAsStringAsync());
+                    if (responseData?.status == "success")
+                    {
+                        var authDetailsNew = new AuthDetails
+                        {
+                            AuthToken = responseData.data.auth_token,
+                            RefreshToken = responseData.data.refresh_auth_token,
+                            DeviceToken = responseData.data.device_token
+                        };
+                        UpdateAuthDetails(authDetailsNew);
+                        return (authDetailsNew, null);
+                    }
+                    return (null, new Exception("Server responded with an error"));
+                }
+                return (null, new Exception("Server responded with an error"));
+            }
+            catch (Exception ex)
+            {
+                return (null, ex);
+            }
         }
 
         public async Task<AuthDetails> RefreshToken()
