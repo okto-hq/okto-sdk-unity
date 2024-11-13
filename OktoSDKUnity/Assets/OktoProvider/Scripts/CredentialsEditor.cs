@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 
@@ -15,6 +16,7 @@ public class CredentialsEditor : EditorWindow
     {
         GUILayout.Label("SDK Credentials", EditorStyles.boldLabel);
 
+        // Load the credentials from the Resources folder (only in the Editor)
         if (credentials == null)
         {
             credentials = Resources.Load<Credentials>("Credentials");
@@ -29,13 +31,15 @@ public class CredentialsEditor : EditorWindow
         }
         else
         {
+            // Allow editing of the credentials in the Editor
             credentials.apiKey = EditorGUILayout.TextField("API Key", credentials.apiKey);
             credentials.clientId = EditorGUILayout.TextField("Client ID", credentials.clientId);
             credentials.clientSecret = EditorGUILayout.TextField("Client Secret", credentials.clientSecret);
 
             if (GUI.changed)
             {
-                EditorUtility.SetDirty(credentials);
+                EditorUtility.SetDirty(credentials); // Mark as dirty to save changes
+                AssetDatabase.SaveAssets();
             }
         }
     }
@@ -48,3 +52,4 @@ public class CredentialsEditor : EditorWindow
         return asset;
     }
 }
+#endif

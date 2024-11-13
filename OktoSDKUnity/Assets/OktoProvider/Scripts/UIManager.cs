@@ -31,7 +31,15 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TMP_Dropdown dropDown;
     [SerializeField] private Button transferTokenButton;
 
-    //Raw Transaction UI SOL
+    [Header("NFT Transfer UI")]
+    [SerializeField] private TMP_InputField collectionAddress;
+    [SerializeField] private TMP_InputField recipientAddress;
+    [SerializeField] private TMP_InputField collectionName;
+    [SerializeField] private TMP_InputField nftQuantity;
+    [SerializeField] private TMP_InputField nftAddress;
+    [SerializeField] private TMP_Dropdown networkDropdown;
+    [SerializeField] private Button transferNFTButton;
+
     [Header("Raw Transaction UI SOL")]
     [SerializeField] private TMP_InputField instructions;
     [SerializeField] private TMP_InputField signer_address;
@@ -47,6 +55,13 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TMP_InputField network_name_evm;
     [SerializeField] private Button evmTransactionButton;
 
+    [Header("Raw Transaction UI APTOS")]
+    [SerializeField] private TMP_InputField aptosFunction;
+    [SerializeField] private TMP_InputField aptosTypeArguments;
+    [SerializeField] private TMP_InputField aptosFunctionArguments;
+    [SerializeField] private TMP_InputField network_name_aptos;
+    [SerializeField] private Button aptosTransactionButton;
+
     //DisplayUI
     [Header("Display UI Elements")]
     [SerializeField] private GameObject displayPanel;
@@ -55,11 +70,6 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TMP_Text loginText;
     [SerializeField] private DisplayObject displayObject;
     [SerializeField] private Transform objectHolder;
-
-
-    //LoginScript
-    [Header("Login Script")]
-    public GoogleLoginManager googleLogin;
 
 
     private string apiKey;
@@ -77,7 +87,7 @@ public class UIManager : MonoBehaviour
 
     private void OnEnable()
     {
-        authenticateButton.onClick.AddListener(LoginButtonPressed);
+
         logoutButton.onClick.AddListener(logoutButtonPressed);
         getPortfolio.onClick.AddListener(OnGetPortfolioClicked);
         getUserDetail.onClick.AddListener(OnGetUserDetailClicked);
@@ -91,11 +101,12 @@ public class UIManager : MonoBehaviour
         transferTokenButton.onClick.AddListener(OnTransferTokenClicked);
         solTransactionButton.onClick.AddListener(OnSOLRawTransactionClicked);
         evmTransactionButton.onClick.AddListener(OnEVMRawTransactionClicked);
+        aptosTransactionButton.onClick.AddListener(OnAptosRawTransactionClicked);
+        transferNFTButton.onClick.AddListener(OnTransferNFTClicked);
     }
 
     private void OnDisable()
     {
-        authenticateButton.onClick.RemoveListener(LoginButtonPressed);
         logoutButton.onClick.RemoveListener(logoutButtonPressed);
         getPortfolio.onClick.RemoveListener(OnGetPortfolioClicked);
         getUserDetail.onClick.RemoveListener(OnGetUserDetailClicked);
@@ -109,13 +120,10 @@ public class UIManager : MonoBehaviour
         transferTokenButton.onClick.RemoveListener(OnTransferTokenClicked);
         solTransactionButton.onClick.RemoveListener(OnSOLRawTransactionClicked);
         evmTransactionButton.onClick.RemoveListener(OnEVMRawTransactionClicked);
+        aptosTransactionButton.onClick.RemoveListener(OnAptosRawTransactionClicked);
+        transferNFTButton.onClick.RemoveListener(OnTransferNFTClicked);
     }
 
-
-    private void LoginButtonPressed()
-    {
-        googleLogin.SignInWithGoogle();
-    }
 
     private void logoutButtonPressed()
     {
@@ -139,8 +147,11 @@ public class UIManager : MonoBehaviour
         try
         {
             loginManager = new OktoProviderSDK(apiKey, "");
+            Debug.Log("login" + loginManager);
             Exception error = null;
             (authenticationData, error) = await loginManager.AuthenticateAsync(id);
+            Debug.Log("loginDone");
+            Debug.Log("loginDone" + authenticationData);
             displayOutput("AuthTokens" + authenticationData.authToken.ToString());
 
             if (authenticationData != null)
@@ -233,6 +244,31 @@ public class UIManager : MonoBehaviour
             Debug.LogError("Failed to get user detail: " + e.Message);
         }
     }
+    private async void OnTransferNFTClicked()
+    {
+        TransferNft nftData = new TransferNft();
+
+        int selectedIndex = networkDropdown.value;
+        string selectedNetwork = networkDropdown.options[selectedIndex].text;
+        nftData.network_name = selectedNetwork; 
+        nftData.opteration_type = "transfer";  
+        nftData.collection_address = collectionAddress.text;
+        nftData.collection_name = collectionName.text;  
+        nftData.quantity = nftQuantity.text;
+        nftData.recipient_address = recipientAddress.text;
+        nftData.nft_address = nftAddress.text;
+
+        try
+        {
+            var nftTransferData = await loginManager.transferNft(nftData);
+            Debug.Log("Order Id: " + nftTransferData.order_id);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Failed to transfer NFT: " + e.Message);
+        }
+    }
+
 
     private async void OnSOLRawTransactionClicked()
     {
@@ -275,6 +311,36 @@ public class UIManager : MonoBehaviour
             Debug.LogError("Failed to get user detail: " + e.Message);
         }
     }
+
+    private async void OnAptosRawTransactionClicked()
+    {
+        ExecuteRawTransaction tokenData = new ExecuteRawTransaction();
+        tokenData.network_name = "APTOS"; 
+
+        AptosTransaction aptos = new AptosTransaction();
+        aptos.transactions = new List<AptosTransactionItem>
+        {
+            new AptosTransactionItem
+            {
+                function = aptosFunction.text, 
+                typeArguments = aptosTypeArguments.text.Split(','), 
+                functionArguments = aptosFunctionArguments.text.Split(',') 
+            }
+        };
+
+        tokenData.transaction = aptos;
+
+        try
+        {
+            var transactionData = await loginManager.executeRawTransaction(tokenData);
+            Debug.Log("Job Id: " + transactionData.jobId);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Failed to execute Aptos transaction: " + e.Message);
+        }
+    }
+
 
     private async void OnGetUserDetailClicked()
     {
@@ -389,10 +455,10 @@ public class UIManager : MonoBehaviour
 
     public void displayOutput(string text)
     {
-        displayText.text = text;
         scrollObject.gameObject.SetActive(false);
-        displayText.gameObject.SetActive(true);
         displayPanel.gameObject.SetActive(true);
+        displayText.gameObject.SetActive(true);
+        displayText.text = text;
     }
 
     public void clearDisplayObjects()
