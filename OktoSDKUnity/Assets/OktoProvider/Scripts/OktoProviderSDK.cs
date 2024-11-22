@@ -69,8 +69,8 @@ namespace OktoProvider
             DataManager.Instance.RefreshToken = newAuthDetails.refreshToken;
             DataManager.Instance.DeviceToken = newAuthDetails.deviceToken;
             authDetails = newAuthDetails;
-            SetAuthorizationHeader(authDetails.authToken);
-            await SaveAuthDetailsToLocalStorage(authDetails);
+            //SetAuthorizationHeader(authDetails.authToken);
+            //await SaveAuthDetailsToLocalStorage(authDetails);
         }
 
         private async Task<AuthDetails> LoadAuthDetailsFromLocalStorage()
@@ -98,16 +98,22 @@ namespace OktoProvider
                 {
                     id_token = idToken
                 };
-                var jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+                var jsonString = JsonConvert.SerializeObject(requestBody);
+                Debug.Log("Serialized JSON: " + jsonString);
+
+                var jsonContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
+                Debug.Log("jsonContent: " + jsonContent);
 
                 httpClient.DefaultRequestHeaders.Clear();
                 httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36");
                 httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
                 httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
                 httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Content-Type", "application/json");
-
+                Debug.Log("login" + idToken);
+                Debug.Log("login2here");
+                Debug.Log("login" + jsonContent);
                 var response = await httpClient.PostAsync($"{baseUrl}/api/v2/authenticate", jsonContent);
-                Debug.Log(response);
+                Debug.Log("login" +  response);
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
@@ -583,7 +589,7 @@ namespace OktoProvider
 
     public class TransferNft
     {
-        public string operation_type { get; set; }
+        public string opteration_type { get; set; }
         public string network_name { get; set; }
         public string collection_address { get; set; }
         public string collection_name { get; set; }
@@ -619,6 +625,20 @@ namespace OktoProvider
         public string data { get; set; }
         public string value { get; set; }
     }
+
+    public class AptosTransaction
+    {
+        public List<AptosTransactionItem> transactions { get; set; }
+
+    }
+
+    public class AptosTransactionItem
+    {
+        public string function { get; set; }
+        public string[] typeArguments { get; set; }
+        public string[] functionArguments { get; set; }
+    }
+
 
 }
 
