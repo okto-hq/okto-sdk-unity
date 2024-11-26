@@ -28,7 +28,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TMP_InputField tokenAddress;
     [SerializeField] private TMP_InputField receipent_address;
     [SerializeField] private TMP_InputField amount;
-    [SerializeField] private TMP_Dropdown dropDown;
+    [SerializeField] private TMP_InputField networkName;
     [SerializeField] private Button transferTokenButton;
 
     [Header("NFT Transfer UI")]
@@ -37,7 +37,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TMP_InputField collectionName;
     [SerializeField] private TMP_InputField nftQuantity;
     [SerializeField] private TMP_InputField nftAddress;
-    [SerializeField] private TMP_Dropdown networkDropdown;
+    [SerializeField] private TMP_InputField networkNameNFT;
     [SerializeField] private Button transferNFTButton;
 
     [Header("Raw Transaction UI SOL")]
@@ -71,18 +71,37 @@ public class UIManager : MonoBehaviour
     [SerializeField] private DisplayObject displayObject;
     [SerializeField] private Transform objectHolder;
 
+    // Otp UI
+    [SerializeField] private TMP_InputField emailInputField;
+    [SerializeField] private TMP_InputField phoneInputField;
+    [SerializeField] private TMP_InputField countryCodeInputField;
+    [SerializeField] private TMP_InputField otpInputFieldEmail;
+    [SerializeField] private TMP_InputField otpInputFieldPhone;
 
-    private string apiKey;
+    //ApiKeys and BuildStage
+    [SerializeField] private TMP_InputField apiKeyText;
+    [SerializeField] private TMP_Dropdown buildStage;
+    [SerializeField] private GameObject OpeningPanel;
+
+    [SerializeField] private Button SendEmailOtpButton;
+    [SerializeField] private Button SendPhoneOtpButton;
+
+    private string emailToken;
+    private string phoneToken;
+
     private List<DisplayObject> displayObjects = new List<DisplayObject>();
     private OktoProviderSDK loginManager;
     private AuthDetails authenticationData;
-    private Credentials credentials;
 
-
-    private void Start()
+   
+    public void setup()
     {
-        credentials = Resources.Load<Credentials>("Credentials");
-        apiKey = credentials.apiKey;
+        DataManager.Instance.apiKey = apiKeyText.text;
+        int selectedIndex = buildStage.value;
+        DataManager.Instance.buildStage = buildStage.options[selectedIndex].text;
+        loginManager = new OktoProviderSDK(apiKeyText.text, buildStage.options[selectedIndex].text);
+        OpeningPanel.SetActive(false);
+        //onAuthenticateClicked();
     }
 
     private void OnEnable()
@@ -96,13 +115,15 @@ public class UIManager : MonoBehaviour
         getWallet.onClick.AddListener(OnGetWalletClicked);
         getNFTOrder.onClick.AddListener(OnGetNFTOrderClicked);
         createWallet.onClick.AddListener(OnCreateWalletClicked);
-        showModel.onClick.AddListener(OnShowModelClicked);
+        //showModel.onClick.AddListener(OnShowModelClicked);
         getSupportedNetworks.onClick.AddListener(OnSupportedNetworksClicked);
         transferTokenButton.onClick.AddListener(OnTransferTokenClicked);
         solTransactionButton.onClick.AddListener(OnSOLRawTransactionClicked);
         evmTransactionButton.onClick.AddListener(OnEVMRawTransactionClicked);
         aptosTransactionButton.onClick.AddListener(OnAptosRawTransactionClicked);
         transferNFTButton.onClick.AddListener(OnTransferNFTClicked);
+        SendEmailOtpButton.onClick.AddListener(SendEmailOtp);
+        SendPhoneOtpButton.onClick.AddListener(SendPhoneOtp);
     }
 
     private void OnDisable()
@@ -115,13 +136,15 @@ public class UIManager : MonoBehaviour
         getWallet.onClick.RemoveListener(OnGetWalletClicked);
         getNFTOrder.onClick.RemoveListener(OnGetNFTOrderClicked);
         createWallet.onClick.RemoveListener(OnCreateWalletClicked);
-        showModel.onClick.RemoveListener(OnShowModelClicked);
+        //showModel.onClick.RemoveListener(OnShowModelClicked);
         getSupportedNetworks.onClick.RemoveListener(OnTransferTokenClicked);
         transferTokenButton.onClick.RemoveListener(OnTransferTokenClicked);
         solTransactionButton.onClick.RemoveListener(OnSOLRawTransactionClicked);
         evmTransactionButton.onClick.RemoveListener(OnEVMRawTransactionClicked);
         aptosTransactionButton.onClick.RemoveListener(OnAptosRawTransactionClicked);
         transferNFTButton.onClick.RemoveListener(OnTransferNFTClicked);
+        SendEmailOtpButton.onClick.RemoveAllListeners();
+        SendPhoneOtpButton.onClick.RemoveAllListeners();
     }
 
 
@@ -142,15 +165,13 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    private async void Authenticate(string id)
+    public async void Authenticate(string id)
     {
         try
         {
-            loginManager = new OktoProviderSDK(apiKey, "");
             Debug.Log("login" + loginManager);
             Exception error = null;
             (authenticationData, error) = await loginManager.AuthenticateAsync(id);
-            Debug.Log("loginDone");
             Debug.Log("loginDone" + authenticationData);
             displayOutput("AuthTokens" + authenticationData.authToken.ToString());
 
@@ -180,6 +201,19 @@ public class UIManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError("Login failed: " + e.Message);
+        }
+    }
+
+    public async void authenticationCompleted(string token)
+    {
+        Debug.Log("loginDone");
+        displayOutput("AuthTokens" + token);
+        DataManager.Instance.AuthToken = token;
+        loginText.text = "Logged In";
+        var wallet = await loginManager.GetWallets();
+        if (wallet.wallets.Count > 0)
+        {
+            createWallet.gameObject.SetActive(false);
         }
     }
 
@@ -228,29 +262,26 @@ public class UIManager : MonoBehaviour
     private async void OnTransferTokenClicked()
     {
         TransferTokens tokenData = new TransferTokens();
-        int selectedIndex = dropDown.value;
-        string selectedText = dropDown.options[selectedIndex].text;
-        tokenData.network_name = selectedText;
+        tokenData.network_name = networkName.text;
         tokenData.quantity = amount.text;
         tokenData.recipient_address = receipent_address.text;
         tokenData.token_address = tokenAddress.text;
         try
         {
             var tokenTransferData = await loginManager.TransferTokens_(tokenData);
+            displayOutput("Order Id: " + tokenTransferData.orderId);
             Debug.Log("Order Id: " + tokenTransferData.orderId);
         }
         catch (Exception e)
         {
-            Debug.LogError("Failed to get user detail: " + e.Message);
+            displayOutput("Could not send order.");
         }
     }
     private async void OnTransferNFTClicked()
     {
         TransferNft nftData = new TransferNft();
 
-        int selectedIndex = networkDropdown.value;
-        string selectedNetwork = networkDropdown.options[selectedIndex].text;
-        nftData.network_name = selectedNetwork; 
+        nftData.network_name = networkNameNFT.text; 
         nftData.opteration_type = "transfer";  
         nftData.collection_address = collectionAddress.text;
         nftData.collection_name = collectionName.text;  
@@ -262,10 +293,11 @@ public class UIManager : MonoBehaviour
         {
             var nftTransferData = await loginManager.transferNft(nftData);
             Debug.Log("Order Id: " + nftTransferData.order_id);
+            displayOutput("Order Id: " + nftTransferData.order_id);
         }
         catch (Exception e)
         {
-            Debug.LogError("Failed to transfer NFT: " + e.Message);
+            displayOutput("Could not send order.");
         }
     }
 
@@ -278,16 +310,19 @@ public class UIManager : MonoBehaviour
         var instructionsVal = JsonConvert.DeserializeObject<List<Instruction>>(instructionsJson);
         SOLTransaction sol = new SOLTransaction();
         sol.instructions = instructionsVal;
-        sol.signer = signer_address.text;
+        var signerList = new List<String>();
+        signerList.Add(signer_address.text);
+        sol.signers = signerList;
         tokenData.transaction = sol;
         try
         {
-            var transactionData = await loginManager.executeRawTransaction(tokenData);
-            Debug.Log("Job Id: " + transactionData.jobId);
+            var transactionData = await loginManager.executeRawTransactionSol(tokenData);
+            Debug.Log("Job Id: " + transactionData.orderId);
+            displayOutput("Job Id: " + transactionData.orderId);
         }
         catch (Exception e)
         {
-            Debug.LogError("Failed to get user detail: " + e.Message);
+            displayOutput("Could not send transaction.");
         }
     }
 
@@ -303,12 +338,13 @@ public class UIManager : MonoBehaviour
         tokenData.transaction = evm;
         try
         {
-            var transactionData = await loginManager.executeRawTransaction(tokenData);
+            var transactionData = await loginManager.executeRawTransactionPol(tokenData);
             Debug.Log("Job Id: " + transactionData.jobId);
+            displayOutput("Job Id: " + transactionData.jobId);
         }
         catch (Exception e)
         {
-            Debug.LogError("Failed to get user detail: " + e.Message);
+            displayOutput("Could not send transaction.");
         }
     }
 
@@ -332,12 +368,13 @@ public class UIManager : MonoBehaviour
 
         try
         {
-            var transactionData = await loginManager.executeRawTransaction(tokenData);
-            Debug.Log("Job Id: " + transactionData.jobId);
+            var transactionData = await loginManager.executeRawTransactionSol(tokenData);
+            Debug.Log("Order Id: " + transactionData.orderId);
+            displayOutput("Order Id: " + transactionData.orderId);
         }
         catch (Exception e)
         {
-            Debug.LogError("Failed to execute Aptos transaction: " + e.Message);
+            displayOutput("Could not send transaction.");
         }
     }
 
@@ -383,12 +420,12 @@ public class UIManager : MonoBehaviour
         {
             OrderQuery query = new OrderQuery();
             var orders = await loginManager.OrderHistory(query);
-            displayOutput(orders.ToString());
-            Debug.Log("Order History: " + orders);
+            displayOutput("Number of orders " + orders.total);
+            Debug.Log("Number of orders " + orders.total);
         }
         catch (Exception e)
         {
-            Debug.LogError("Failed to get order history: " + e.Message);
+            displayOutput("No Order History");
         }
     }
 
@@ -424,12 +461,12 @@ public class UIManager : MonoBehaviour
         {
             NftOrderDetailsQuery query = new NftOrderDetailsQuery();
             var nftOrder = await loginManager.GetNftOrderDetails(query);
-            displayOutput(nftOrder.ToString());
+            displayOutput("Number of NFT Orders: " + nftOrder.count.ToString());
             Debug.Log("NFT Order: " + nftOrder);
         }
         catch (Exception e)
         {
-            Debug.LogError("Failed to get NFT order: " + e.Message);
+            displayOutput("No NFT Orders");
         }
     }
 
@@ -447,11 +484,103 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    private void OnShowModelClicked()
+    private async void SendEmailOtp()
     {
-        // Show model code here if any additional functionality is needed
-        Debug.Log("Show model clicked");
+        string email = emailInputField.text;
+        if (string.IsNullOrEmpty(email))
+        {
+            displayOutput("Email cannot be empty.");
+            return;
+        }
+
+        var (success, token, error) = await loginManager.SendEmailOtpAsync(email);
+        if (success)
+        {
+            emailToken = token;
+            displayOutput("Email OTP sent successfully!");
+            otpInputFieldEmail.gameObject.SetActive(true);
+            SendEmailOtpButton.onClick.RemoveListener(SendEmailOtp);
+            SendEmailOtpButton.onClick.AddListener(VerifyEmailOtp);
+        }
+        else
+        {
+            displayOutput($"Error: {error?.Message ?? "Failed to send email OTP"}");
+        }
     }
+
+    private async void VerifyEmailOtp()
+    {
+        string email = emailInputField.text;
+        string otp = otpInputFieldEmail.text;
+
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(otp) || string.IsNullOrEmpty(emailToken))
+        {
+            displayOutput("All fields must be filled in for verification.");
+            return;
+        }
+
+        var (success, authToken, error) = await loginManager.VerifyEmailOtpAsync(email, otp, emailToken);
+        if (success)
+        {
+            displayOutput("Email OTP verified successfully!");
+            authenticationCompleted(authToken);
+        }
+        else
+        {
+            displayOutput($"Error: {error?.Message ?? "Failed to verify email OTP"}");
+        }
+    }
+
+    private async void SendPhoneOtp()
+    {
+        string phoneNumber = phoneInputField.text;
+        string countryCode = countryCodeInputField.text;
+
+        if (string.IsNullOrEmpty(phoneNumber) || string.IsNullOrEmpty(countryCode))
+        {
+            displayOutput("Phone number and country code cannot be empty.");
+            return;
+        }
+
+        var (success, token, error) = await loginManager.SendPhoneOtpAsync(phoneNumber, countryCode);
+        if (success)
+        {
+            phoneToken = token;
+            displayOutput("Phone OTP sent successfully!");
+            otpInputFieldPhone.gameObject.SetActive(true);
+            SendPhoneOtpButton.onClick.RemoveListener(SendPhoneOtp);
+            SendPhoneOtpButton.onClick.AddListener(VerifyPhoneOtp);
+        }
+        else
+        {
+            displayOutput($"Error: {error?.Message ?? "Failed to send phone OTP"}");
+        }
+    }
+
+    private async void VerifyPhoneOtp()
+    {
+        string phoneNumber = phoneInputField.text;
+        string countryCode = countryCodeInputField.text;
+        string otp = otpInputFieldPhone.text;
+
+        if (string.IsNullOrEmpty(phoneNumber) || string.IsNullOrEmpty(countryCode) || string.IsNullOrEmpty(otp) || string.IsNullOrEmpty(phoneToken))
+        {
+            displayOutput("All fields must be filled in for verification.");
+            return;
+        }
+
+        var (success, authToken, error) = await loginManager.VerifyPhoneOtpAsync(phoneNumber, countryCode, otp, phoneToken);
+        if (success)
+        {
+             displayOutput("Phone OTP verified successfully!");
+            authenticationCompleted(authToken);
+        }
+        else
+        {
+            displayOutput($"Error: {error?.Message ?? "Failed to verify phone OTP"}");
+        }
+    }
+
 
     public void displayOutput(string text)
     {

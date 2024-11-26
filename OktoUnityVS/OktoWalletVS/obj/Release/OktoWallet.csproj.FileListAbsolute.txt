@@ -1,9 +1,0 @@
-E:\UnityWork3\Okto Wallet\OktoUnityVS\OktoWalletVS\bin\Release\OktoWallet.dll
-E:\UnityWork3\Okto Wallet\OktoUnityVS\OktoWalletVS\bin\Release\OktoWallet.pdb
-E:\UnityWork3\Okto Wallet\OktoUnityVS\OktoWalletVS\bin\Release\Newtonsoft.Json.dll
-E:\UnityWork3\Okto Wallet\OktoUnityVS\OktoWalletVS\bin\Release\Newtonsoft.Json.xml
-E:\UnityWork3\Okto Wallet\OktoUnityVS\OktoWalletVS\obj\Release\OktoWallet.csproj.AssemblyReference.cache
-E:\UnityWork3\Okto Wallet\OktoUnityVS\OktoWalletVS\obj\Release\OktoWallet.csproj.CoreCompileInputs.cache
-E:\UnityWork3\Okto Wallet\OktoUnityVS\OktoWalletVS\obj\Release\OktoWallet.csproj.Up2Date
-E:\UnityWork3\Okto Wallet\OktoUnityVS\OktoWalletVS\obj\Release\OktoWallet.dll
-E:\UnityWork3\Okto Wallet\OktoUnityVS\OktoWalletVS\obj\Release\OktoWallet.pdb

@@ -32,11 +32,11 @@ namespace OktoProvider
 
         private string GetBaseUrl(string buildType)
         {
-            if (buildType == "Production")
+            if (buildType == "PRODUCTION")
             {
                 return "https://apigw.okto.tech";
             }
-            else if (buildType == "Staging")
+            else if (buildType == "STAGING")
             {
                 return "https://3p-bff.oktostage.com";
             }
@@ -229,8 +229,9 @@ namespace OktoProvider
                 response.EnsureSuccessStatusCode();
 
                 var responseContent = await response.Content.ReadAsStringAsync();
+                Debug.Log(responseContent);
                 var apiResponse = JsonConvert.DeserializeObject<ApiResponse<T>>(responseContent);
-
+                Debug.Log(apiResponse);
                 if (apiResponse.status == "success")
                 {
                     return apiResponse;
@@ -314,9 +315,15 @@ namespace OktoProvider
             });
         }
 
-        public async Task<ExecuteRawTransactionData> executeRawTransaction(ExecuteRawTransaction data)
+        public async Task<ExecuteRawTransactionDataPol> executeRawTransactionPol(ExecuteRawTransaction data)
         {
-            ApiResponse<ExecuteRawTransactionData> response = await MakePostRequest<ExecuteRawTransactionData>($"/v1/rawtransaction/execute?network_name={data.network_name}", data);
+            ApiResponse<ExecuteRawTransactionDataPol> response = await MakePostRequest<ExecuteRawTransactionDataPol>($"/v1/rawtransaction/execute?network_name={data.network_name}", data);
+            return response.data;
+        }
+
+        public async Task<ExecuteRawTransactionDataSol> executeRawTransactionSol(ExecuteRawTransaction data)
+        {
+            ApiResponse<ExecuteRawTransactionDataSol> response = await MakePostRequest<ExecuteRawTransactionDataSol>($"/v1/rawtransaction/execute?network_name={data.network_name}", data);
             return response.data;
         }
 
@@ -324,7 +331,7 @@ namespace OktoProvider
         {
             try
             {
-                var jobId = await executeRawTransaction(data);
+                var jobId = await executeRawTransactionPol(data);
                 Debug.Log($"Execute Raw transaction called with Job ID {jobId}");
 
                 return await WaitForJobCompletion<RawTransactionStatus>(
@@ -390,7 +397,147 @@ namespace OktoProvider
         {
             ApiResponse<TransferNftData> response = await MakePostRequest<TransferNftData>("/v1/nft/transfer", data);
             return response.data;
-        }       
+        }
+
+        public async Task<(bool success, string token, Exception error)> SendEmailOtpAsync(string email)
+        {
+            var apiUrl = $"{baseUrl}/api/v1/authenticate/email";
+            var requestBody = new { email = email };
+
+            try
+            {
+                var response = await MakeApiCallAsync(apiUrl, requestBody);
+                Debug.Log(response);
+                if (response.success && response.data.TryGetValue("token", out var token))
+                {
+                    return (true, token.ToString(), null);
+                }
+                return (false, null, new Exception("Failed to send email OTP"));
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex);
+            }
+        }
+
+        public async Task<(bool success, string authToken, Exception error)> VerifyEmailOtpAsync(string email, string otp, string token)
+        {
+            var apiUrl = $"{baseUrl}/api/v1/authenticate/email/verify";
+            var requestBody = new { email = email, otp = otp, token = token };
+
+            try
+            {
+                var response = await MakeApiCallAsync(apiUrl, requestBody);
+                if (response.success && response.data.TryGetValue("auth_token", out var authToken))
+                {
+                    Debug.Log(authToken.ToString());
+                    return (true, authToken.ToString(), null);
+                }
+                return (false, null, new Exception("Failed to verify email OTP"));
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex);
+            }
+        }
+
+        public async Task<(bool success, string token, Exception error)> SendPhoneOtpAsync(string phoneNumber, string countryShortName)
+        {
+            var apiUrl = $"{baseUrl}/api/v1/authenticate/phone";
+            var requestBody = new { phone_number = phoneNumber, country_short_name = countryShortName };
+
+            try
+            {
+                var response = await MakeApiCallAsync(apiUrl, requestBody);
+                if (response.success && response.data.TryGetValue("token", out var token))
+                {
+                    return (true, token.ToString(), null);
+                }
+                return (false, null, new Exception("Failed to send phone OTP"));
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex);
+            }
+        }
+
+        public async Task<(bool success, string authToken, Exception error)> VerifyPhoneOtpAsync(string phoneNumber, string countryShortName, string otp, string token)
+        {
+            var apiUrl = $"{baseUrl}/api/v1/authenticate/phone/verify";
+            var requestBody = new { phone_number = phoneNumber, country_short_name = countryShortName, otp = otp, token = token };
+
+            try
+            {
+                var response = await MakeApiCallAsync(apiUrl, requestBody);
+                if (response.success && response.data.TryGetValue("auth_token", out var authToken))
+                {
+                    return (true, authToken.ToString(), null);
+                }
+                return (false, null, new Exception("Failed to verify phone OTP"));
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex);
+            }
+        }
+
+        private async Task<(bool success, Dictionary<string, object> data, Exception error)> MakeApiCallAsync(string apiUrl, object requestBody)
+        {
+            try
+            {
+                var jsonString = JsonConvert.SerializeObject(requestBody);
+                var jsonContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
+
+                // Set headers
+                httpClient.DefaultRequestHeaders.Clear();
+                httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
+                httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36");
+                Debug.Log(apiUrl);
+                Debug.Log(requestBody);
+
+                var response = await httpClient.PostAsync(apiUrl, jsonContent);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Debug.Log(response);
+
+                // Check response status
+                if (response.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        // Deserialize JSON response into a nested object
+                        var responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseContent);
+
+                        // Check the "status" field
+                        if (responseData != null &&
+                            responseData.TryGetValue("status", out var status) &&
+                            status.ToString() == "success")
+                        {
+                            // Check the "data" field
+                            if (responseData.TryGetValue("data", out var data) &&
+                                data is Newtonsoft.Json.Linq.JObject dataJObject)
+                            {
+                                // Convert "data" JObject to Dictionary<string, object>
+                                var dataDict = dataJObject.ToObject<Dictionary<string, object>>();
+                                return (true, dataDict, null);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        return (false, null, new Exception("Error parsing API response: " + ex.Message));
+                    }
+                }
+
+                return (false, null, new Exception("Error in API response: " + responseContent));
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex);
+            }
+        }
+
+
     }
     public class Order
     {
@@ -563,11 +710,15 @@ namespace OktoProvider
         public object transaction { get; set; }
     }
 
-    public class ExecuteRawTransactionData
+    public class ExecuteRawTransactionDataPol
     {
         public string jobId { get; set; }
     }
 
+    public class ExecuteRawTransactionDataSol
+    {
+        public string orderId { get; set; }
+    }
     public class OrderData
     {
         public int total { get; set; }
@@ -601,14 +752,14 @@ namespace OktoProvider
     public class SOLTransaction 
     {
         public List<Instruction> instructions { get; set; }  
-        public string signer { get; set; }
+        public List<string> signers { get; set; }
     }
 
     public class Instruction
     {
-        public string programId { get; set; }         
-        public byte[] data { get; set; }               
-        public List<AccountMeta> keys { get; set; }    
+        public List<AccountMeta> keys { get; set; }
+        public string programId { get; set; }
+        public List<int> data { get; set; }
     }
 
     public class AccountMeta
