@@ -14,6 +14,7 @@ public class GoogleLoginManager : MonoBehaviour
 {
 
     [SerializeField] private UIManager UIManager;
+    [SerializeField] private OktoWebViewWidget webWidget;
 
     private void Start()
     {
@@ -42,7 +43,7 @@ public class GoogleLoginManager : MonoBehaviour
                 Debug.Log("Login successful. IdToken: " + idToken);
                 DataManager.Instance.IdToken = idToken;
                 UIManager.onAuthenticateClicked();
-
+                webWidget.loggedIn();
                 // Use the idToken to authenticate with your backend or other services
                 //SignInWithGoogleAsync(idToken);
             }
