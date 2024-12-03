@@ -11,19 +11,31 @@
         {
             "deviceId": "MJWCX4FQJVQ8QC9P",
             "name": "com.DefaultCompany.OktoWalletSDK",
-            "processId": 870,
+            "processId": 15260,
             "exited": true
         },
         {
             "deviceId": "MJWCX4FQJVQ8QC9P",
             "name": "com.DefaultCompany.OktoWalletSDK",
-            "processId": 19262,
+            "processId": 25088,
             "exited": true
         },
         {
             "deviceId": "MJWCX4FQJVQ8QC9P",
             "name": "com.DefaultCompany.OktoWalletSDK",
-            "processId": 9715,
+            "processId": 31515,
+            "exited": true
+        },
+        {
+            "deviceId": "MJWCX4FQJVQ8QC9P",
+            "name": "com.DefaultCompany.OktoWalletSDK",
+            "processId": 24825,
+            "exited": true
+        },
+        {
+            "deviceId": "MJWCX4FQJVQ8QC9P",
+            "name": "com.android.launcher",
+            "processId": 2630,
             "exited": false
         }
     ],
@@ -78,7 +90,7 @@
         "Behavior": 0
     },
     "m_FilterOptions": {
-        "m_Filter": "",
+        "m_Filter": "message",
         "m_UseRegularExpressions": false,
         "m_MatchCase": false
     },
