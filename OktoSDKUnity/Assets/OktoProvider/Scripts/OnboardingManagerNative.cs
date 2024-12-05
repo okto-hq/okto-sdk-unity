@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Threading.Tasks;
 using TMPro;
@@ -44,12 +45,14 @@ public class OnboardingManagerNative : MonoBehaviour
     [SerializeField] private TextMeshProUGUI verificationText;
 
     [Header("Sprites")]
+    [SerializeField] private Sprite codeDefault;
     [SerializeField] private Sprite codeTyping;
     [SerializeField] private Sprite codeSuccessful;
     [SerializeField] private Sprite codeIncorrect;
 
 
     [SerializeField] private UIManager uiManager;
+    [SerializeField] private GoogleLoginManager loginManager;
     private string emailToken;
     private string phoneToken;
 
@@ -68,14 +71,43 @@ public class OnboardingManagerNative : MonoBehaviour
         Mail1.onClick.AddListener(OpenMailScreen);
         paste.onClick.AddListener(PasteCode);
         resendOTP.onClick.AddListener(ResendOTP);
-
         sendCode.onClick.AddListener(SendEmailOtp);
-        sendOTP.onClick.AddListener(SendEmailOtp);
-        googleAccount.onClick.AddListener(SendEmailOtp);
+        sendOTP.onClick.AddListener(SendPhoneOtp);
+        googleAccount.onClick.AddListener(GoogleLogin);
         backButtonConfirm.onClick.AddListener(backToMain);
         backButtonMain.onClick.AddListener(backToHome);
 
         InitializeCodeInputListeners();
+
+        phoneNumber.onValueChanged.AddListener(ValidatePhoneNumber);
+        emailAddress.onValueChanged.AddListener(ValidateEmailAddress);
+    }
+
+    private void ValidatePhoneNumber(string phone)
+    {
+        if (phone.Length > 10)
+        {
+            phoneNumber.text = phone.Substring(0, 10); 
+        }
+
+        sendOTP.interactable = phoneNumber.text.Length == 10;
+    }
+
+    private void ValidateEmailAddress(string email)
+    {
+        bool isValidEmail = !string.IsNullOrEmpty(email) && email.Contains("@") && email.Contains(".");
+        sendCode.interactable = isValidEmail;
+    }
+
+    private void GoogleLogin()
+    {
+        loginManager.LoginGoogle();
+        CloseAllScreens();
+        phoneScreen.SetActive(true);
+        defaultObjects.SetActive(true);
+        clearCodeField();
+        onboardingScreen.SetActive(false);
+        Screen.orientation = ScreenOrientation.LandscapeLeft;
     }
 
     private void Update()
@@ -100,6 +132,7 @@ public class OnboardingManagerNative : MonoBehaviour
         CloseAllScreens();
         phoneScreen.SetActive(true);
         defaultObjects.SetActive(true);
+        clearCodeField();
     }
 
     private void OpenGoogleScreen()
@@ -171,7 +204,7 @@ public class OnboardingManagerNative : MonoBehaviour
         Image fieldImage = field.transform.GetComponent<Image>();
         if (fieldImage != null)
         {
-            fieldImage.sprite = null; 
+            fieldImage.sprite = codeDefault; 
         }
     }
 
@@ -198,6 +231,21 @@ public class OnboardingManagerNative : MonoBehaviour
         }
         return true;
     }
+
+    private void clearCodeField()
+    {
+        TMP_InputField[] codeFields = { code1, code2, code3, code4, code5, code6 };
+        foreach(TMP_InputField field in codeFields)
+        {
+            field.text = "";
+            Image fieldImage = field.transform.GetComponent<Image>();
+            if (fieldImage != null)
+            {
+                fieldImage.sprite = codeDefault;
+            }
+        }
+    }
+
     private async Task CheckCodeAsync()
     {
         string enteredCode = code1.text + code2.text + code3.text + code4.text + code5.text + code6.text;
@@ -287,6 +335,10 @@ public class OnboardingManagerNative : MonoBehaviour
         {
             //displayOutput("Email OTP verified successfully!");
             uiManager.authenticationCompleted(authToken);
+            CloseAllScreens();
+            phoneScreen.SetActive(true);
+            defaultObjects.SetActive(true);
+            clearCodeField();
             onboardingScreen.SetActive(false);
             Screen.orientation = ScreenOrientation.LandscapeLeft;
             return true;
@@ -327,6 +379,10 @@ public class OnboardingManagerNative : MonoBehaviour
         if (success)
         {
             uiManager.authenticationCompleted(authToken);
+            CloseAllScreens();
+            phoneScreen.SetActive(true);
+            defaultObjects.SetActive(true);
+            clearCodeField();
             onboardingScreen.SetActive(false);
             Screen.orientation = ScreenOrientation.LandscapeLeft;
             return true;
