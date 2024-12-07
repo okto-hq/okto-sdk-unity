@@ -22,6 +22,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button getNFTOrder;
     [SerializeField] private Button createWallet;
     [SerializeField] private Button showModel;
+    [SerializeField] private Button onBoardingNative;
 
     //TokenTransfer
     [Header("Token Transfer UI")]
@@ -86,11 +87,15 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button SendEmailOtpButton;
     [SerializeField] private Button SendPhoneOtpButton;
 
+    [SerializeField] private OnboardingManager onboardingWidget;
+    [SerializeField] private OktoWebViewWidget webWidget;
+    [SerializeField] private GameObject onboardingUI;
+
     private string emailToken;
     private string phoneToken;
 
     private List<DisplayObject> displayObjects = new List<DisplayObject>();
-    private OktoProviderSDK loginManager;
+    public OktoProviderSDK loginManager;
     private AuthDetails authenticationData;
 
    
@@ -101,6 +106,8 @@ public class UIManager : MonoBehaviour
         DataManager.Instance.buildStage = buildStage.options[selectedIndex].text;
         loginManager = new OktoProviderSDK(apiKeyText.text, buildStage.options[selectedIndex].text);
         OpeningPanel.SetActive(false);
+        Screen.orientation = ScreenOrientation.LandscapeLeft;
+        onboardingWidget.loggedIn();
         //onAuthenticateClicked();
     }
 
@@ -124,6 +131,7 @@ public class UIManager : MonoBehaviour
         transferNFTButton.onClick.AddListener(OnTransferNFTClicked);
         SendEmailOtpButton.onClick.AddListener(SendEmailOtp);
         SendPhoneOtpButton.onClick.AddListener(SendPhoneOtp);
+        onBoardingNative.onClick.AddListener(openOnboarding);
     }
 
     private void OnDisable()
@@ -145,12 +153,16 @@ public class UIManager : MonoBehaviour
         transferNFTButton.onClick.RemoveListener(OnTransferNFTClicked);
         SendEmailOtpButton.onClick.RemoveAllListeners();
         SendPhoneOtpButton.onClick.RemoveAllListeners();
+        onBoardingNative.onClick.RemoveListener(openOnboarding);
     }
 
 
     private void logoutButtonPressed()
     {
         loginManager.Logout();
+        Debug.Log("Log out successful.");
+        loginText.text = "Login";
+        createWallet.gameObject.SetActive(true);
     }
 
     public void onAuthenticateClicked()
@@ -174,7 +186,7 @@ public class UIManager : MonoBehaviour
             (authenticationData, error) = await loginManager.AuthenticateAsync(id);
             Debug.Log("loginDone" + authenticationData);
             displayOutput("AuthTokens" + authenticationData.authToken.ToString());
-
+            webWidget.loggedIn();
             if (authenticationData != null)
             {
                 Debug.Log("Login successful.");
@@ -206,6 +218,7 @@ public class UIManager : MonoBehaviour
 
     public async void authenticationCompleted(string token)
     {
+        webWidget.loggedIn();
         Debug.Log("loginDone");
         displayOutput("AuthTokens" + token);
         DataManager.Instance.AuthToken = token;
@@ -604,5 +617,11 @@ public class UIManager : MonoBehaviour
         displayText.gameObject.SetActive(false);
         displayPanel.gameObject.SetActive(true);
         scrollObject.gameObject.SetActive(true);
+    }
+
+    private void openOnboarding()
+    {
+        Screen.orientation = ScreenOrientation.Portrait;
+        onboardingUI.SetActive(true);
     }
 }

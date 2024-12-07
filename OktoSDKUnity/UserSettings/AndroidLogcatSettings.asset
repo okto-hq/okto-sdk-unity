@@ -1,29 +1,41 @@
 {
     "m_SelectedDeviceId": "MJWCX4FQJVQ8QC9P",
     "m_SelectedPackage": {
-        "deviceId": "",
-        "name": "",
-        "processId": 0,
+        "deviceId": "MJWCX4FQJVQ8QC9P",
+        "name": "com.DefaultCompany.OktoWalletSDK",
+        "processId": 30413,
         "exited": false
     },
     "m_SelectedPriority": 1,
     "m_KnownPackagesForSerialization": [
         {
             "deviceId": "MJWCX4FQJVQ8QC9P",
-            "name": "com.DefaultCompany.OktoWalletSDK",
-            "processId": 870,
+            "name": "com.google.android.gms.ui",
+            "processId": 27402,
             "exited": true
         },
         {
             "deviceId": "MJWCX4FQJVQ8QC9P",
             "name": "com.DefaultCompany.OktoWalletSDK",
-            "processId": 19262,
+            "processId": 30979,
             "exited": true
         },
         {
             "deviceId": "MJWCX4FQJVQ8QC9P",
             "name": "com.DefaultCompany.OktoWalletSDK",
-            "processId": 9715,
+            "processId": 31616,
+            "exited": true
+        },
+        {
+            "deviceId": "MJWCX4FQJVQ8QC9P",
+            "name": "com.DefaultCompany.OktoWalletSDK",
+            "processId": 29267,
+            "exited": true
+        },
+        {
+            "deviceId": "MJWCX4FQJVQ8QC9P",
+            "name": "com.DefaultCompany.OktoWalletSDK",
+            "processId": 30413,
             "exited": false
         }
     ],

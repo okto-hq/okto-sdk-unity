@@ -36,9 +36,8 @@ public class OktoWebViewWidget : MonoBehaviour
             }
         );
 
-        webView.SetVisibility(false); // Start with the WebView hidden
+        webView.SetVisibility(false); 
 
-        // Add listener to the button
         if (showModalButton != null)
         {
             showModalButton.onClick.AddListener(OpenWebView);
@@ -47,8 +46,9 @@ public class OktoWebViewWidget : MonoBehaviour
 
     void OpenWebView()
     {
+        Screen.orientation = ScreenOrientation.Portrait;
         webView.LoadURL(widgetUrl);
-        webView.SetMargins(200, 200, 200, 200); 
+        webView.SetMargins(10, 150, 10, 150); 
         webView.SetVisibility(true);
         closeButton.gameObject.SetActive(true);
         closeButton.onClick.AddListener(closeWebView);
@@ -62,6 +62,7 @@ public class OktoWebViewWidget : MonoBehaviour
         }
         closeButton.onClick.RemoveListener(closeWebView);
         closeButton.gameObject.SetActive(false);
+        Screen.orientation = ScreenOrientation.LandscapeLeft;
     }
 
     void InjectJavaScript()
