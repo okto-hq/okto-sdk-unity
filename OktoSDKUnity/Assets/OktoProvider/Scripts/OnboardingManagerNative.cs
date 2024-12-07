@@ -3,6 +3,7 @@ using System.Collections;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class OnboardingManagerNative : MonoBehaviour
@@ -39,6 +40,7 @@ public class OnboardingManagerNative : MonoBehaviour
     [SerializeField] private GameObject googleScreen;
     [SerializeField] private GameObject confirmationScreen;
     [SerializeField] private GameObject onboardingScreen;
+    [SerializeField] private GameObject IncorrectCode;
 
     [Header("Texts")]
     [SerializeField] private TextMeshProUGUI timeCounter;
@@ -61,6 +63,10 @@ public class OnboardingManagerNative : MonoBehaviour
     private float resendCooldown = 30f;
     private float timer = 0f;
 
+    public string otpString = "";
+
+    private Color defaultColor = new Color32(112, 112, 112, 255);
+    private Color activeColor = new Color32(84, 102, 238, 255);
     private void Start()
     {
         Google.onClick.AddListener(OpenGoogleScreen);
@@ -115,24 +121,33 @@ public class OnboardingManagerNative : MonoBehaviour
         if (timer > 0)
         {
             timer -= Time.deltaTime;
-            timeCounter.text = "(" + Mathf.Ceil(timer).ToString() + "sec)";
-            resendOTP.interactable = timer <= 0;
+            timeCounter.text = $"({Mathf.Ceil(timer)} sec)";
+            resendOTP.interactable = false;
+            resendOTP.transform.GetComponentInChildren<TextMeshProUGUI>().color = defaultColor;
+        }
+        else
+        {
+            timer = 0;
+            timeCounter.text = "";
+            resendOTP.interactable = true;
+            resendOTP.transform.GetComponentInChildren<TextMeshProUGUI>().color = activeColor;
         }
     }
-
     private void backToHome()
     {
         CloseAllScreens();
+        IncorrectCode.SetActive(false);
         phoneScreen.SetActive(true);
         onboardingScreen.SetActive(false);
         Screen.orientation = ScreenOrientation.LandscapeLeft;
     }
     private void backToMain()
     {
+        clearCodeField();
+        IncorrectCode.SetActive(false);
         CloseAllScreens();
         phoneScreen.SetActive(true);
         defaultObjects.SetActive(true);
-        clearCodeField();
     }
 
     private void OpenGoogleScreen()
@@ -178,7 +193,7 @@ public class OnboardingManagerNative : MonoBehaviour
         }
     }
 
-    private void InitializeCodeInputListeners()
+    /*private void InitializeCodeInputListeners()
     {
         TMP_InputField[] codeFields = { code1, code2, code3, code4, code5, code6 };
         for (int i = 0; i < codeFields.Length; i++)
@@ -188,14 +203,25 @@ public class OnboardingManagerNative : MonoBehaviour
             codeFields[i].onSelect.AddListener(delegate { HighlightSelectedField(codeFields[index]); });
             codeFields[i].onDeselect.AddListener(delegate { ResetFieldHighlight(codeFields[index]); });
         }
-    }
+    }*/
 
     private void HighlightSelectedField(TMP_InputField field)
     {
         Image fieldImage = field.transform.GetComponent<Image>(); 
         if (fieldImage != null)
         {
-            fieldImage.sprite = codeTyping; 
+            if(field == code1)
+            {
+                if(otpString.Length < 1)
+                {
+                    fieldImage.sprite = codeTyping;
+                }
+            }
+            else
+            {
+                fieldImage.sprite = codeTyping;
+            }
+            
         }
     }
 
@@ -207,15 +233,179 @@ public class OnboardingManagerNative : MonoBehaviour
             fieldImage.sprite = codeDefault; 
         }
     }
+    private void InitializeCodeInputListeners()
+    {
+        TMP_InputField[] codeFields = {code2, code3, code4, code5, code6 };
+        TMP_InputField[] codeFieldsSend = {code1, code2, code3, code4, code5, code6 };
+
+        foreach (TMP_InputField field in codeFields)
+        {
+            field.interactable = false;
+            field.onSelect.AddListener(delegate { HighlightSelectedField(field); SwitchToInputField(code1); });
+        }
+
+        code1.onValueChanged.AddListener(delegate { HandleInputChange(codeFieldsSend, 0); });
+        code1.onSelect.AddListener(delegate { HighlightSelectedField(code1); });
+        //codeFields[5].onSelect.AddListener(delegate { HighlightSelectedField(codeFields[5]); SwitchToInputField(code1); });
+    }
+    private void RemoveCodeInputListeners()
+    {
+        TMP_InputField[] codeFields = { code1, code2, code3, code4, code5, code6 };
+
+        foreach (TMP_InputField field in codeFields)
+        {
+            field.onSelect.RemoveAllListeners();
+            field.onValueChanged.RemoveAllListeners();        
+        }
+
+    }
+
+    private void SwitchToInputField(TMP_InputField targetInputField)
+    {
+        Debug.Log($"Switching focus to {targetInputField.name}");
+
+        StartCoroutine(SafeSwitchToInputField(targetInputField));
+
+    }
+    private IEnumerator SafeSwitchToInputField(TMP_InputField targetInputField)
+    {
+        yield return new WaitForEndOfFrame();
+
+        targetInputField.Select();
+        targetInputField.interactable = true;
+        if(otpString.Length > 1)
+        {
+            if (IncorrectCode.activeInHierarchy)
+            {
+                targetInputField.transform.GetComponent<Image>().sprite = codeIncorrect;
+            }
+            else
+            {
+                targetInputField.transform.GetComponent<Image>().sprite = codeDefault;
+            }
+        }
+        else if (otpString.Length == 1)
+        {
+            targetInputField.transform.GetComponent<Image>().sprite = codeTyping;
+        }
+
+
+
+    }
+
+    private void ClearInputFields(TMP_InputField[] codeFields)
+    {
+        // Clear all input fields when the last field is selected (back button press)
+        foreach (var field in codeFields)
+        {
+            field.text = "";
+            Image fieldImage = field.transform.GetComponent<Image>();
+            if (fieldImage != null)
+            {
+                fieldImage.sprite = codeDefault;  // Reset field highlight
+            }
+        }
+    }
+
+    private void HandleInputChange(TMP_InputField[] codeFields, int index)
+    {
+        if(index == 0)
+        {
+            string val = codeFields[0].text;
+            if ((otpString.Length == 0) || val.Length == 2 && otpString.Length < 6 && val.Length > 0)
+            {
+                Debug.Log("herio" + val);
+                otpString += val[val.Length - 1];
+                codeFields[otpString.Length - 1].transform.GetComponent<Image>().sprite = codeDefault;
+                if(otpString.Length > 1)
+                {
+                    codeFields[otpString.Length - 1].interactable = false;
+                }
+                
+                deselectCodeField();
+                if (otpString.Length < 6)
+                {
+                    codeFields[otpString.Length].transform.GetComponent<Image>().sprite = codeTyping;
+                    codeFields[otpString.Length].interactable = true;
+                }
+                if (index == 0)
+                {
+                    codeFields[0].text = otpString[0].ToString();
+                }
+                else
+                {
+                    codeFields[index].text = "";
+                }
+                codeFields[otpString.Length - 1].text = otpString[otpString.Length - 1].ToString();
+
+
+                if (otpString.Length == 6)
+                {
+                    codeFields[5].interactable = true;
+                    EventSystem.current.SetSelectedGameObject(null);
+                    CheckCodeAsync();
+                }
+            }
+            else if (val.Length == 0)
+            {
+                if (otpString.Length > 0)
+                {
+                    codeFields[otpString.Length - 1].text = "";
+                    codeFields[otpString.Length - 1].interactable = false;
+                    otpString = otpString.Substring(0, otpString.Length - 1);
+                    deselectCodeField();
+                    if (otpString.Length > 0)
+                    {
+                        codeFields[0].text = otpString[0].ToString();
+                        codeFields[otpString.Length - 1].transform.GetComponent<Image>().sprite = codeTyping;
+                        codeFields[otpString.Length - 1].interactable = true;
+                    }
+                    else
+                    {
+                        codeFields[0].interactable = true;
+                        codeFields[0].transform.GetComponent<Image>().sprite = codeTyping;
+                    }
+                    SwitchToInputField(code1);
+                    Debug.Log(otpString);
+                }
+            }
+        }
+        else
+        {
+            if(code6.text == "")
+            {
+                otpString = otpString.Substring(0, otpString.Length - 1);
+                code1.Select();
+                code1.interactable = true;
+                code1.GetComponent<Image>().sprite = codeIncorrect;
+            }
+
+        }
+
+    }
 
     private void HandleCodeInput(TMP_InputField[] codeFields, int index)
     {
-        if (codeFields[index].text.Length == 1 && index < codeFields.Length - 1)
+        IncorrectCode.SetActive(true);
+        TMP_InputField field = codeFields[index];
+        if (field.text.Length > 1)
+        {
+            field.text = field.text[field.text.Length - 1].ToString();
+        }
+
+        if (field.text.Length == 1 && index < codeFields.Length - 1)
         {
             codeFields[index + 1].Select();
+            EventSystem.current.SetSelectedGameObject(codeFields[index + 1].gameObject);
+        }
+        if (field.text.Length == 0 && index > 0)
+        {
+            codeFields[index - 1].Select();
+            EventSystem.current.SetSelectedGameObject(codeFields[index-1].gameObject);
         }
         if (AllFieldsFilled(codeFields))
         {
+            EventSystem.current.SetSelectedGameObject(null);
             CheckCodeAsync();
         }
     }
@@ -245,6 +435,26 @@ public class OnboardingManagerNative : MonoBehaviour
             }
         }
     }
+    private void deselectCodeField()
+    {
+        TMP_InputField[] codeFields = { code1, code2, code3, code4, code5, code6 };
+        foreach (TMP_InputField field in codeFields)
+        {
+            Image fieldImage = field.transform.GetComponent<Image>();
+            if (fieldImage != null)
+            {
+                if (IncorrectCode.activeInHierarchy)
+                {
+                    fieldImage.sprite = codeIncorrect;
+                }
+                else
+                {
+                    fieldImage.sprite = codeDefault;
+                }
+                
+            }
+        }
+    }
 
     private async Task CheckCodeAsync()
     {
@@ -256,6 +466,7 @@ public class OnboardingManagerNative : MonoBehaviour
         {
             verified = await VerifyEmailOtp(enteredCode);
             Sprite resultSprite = verified ? codeSuccessful : codeIncorrect;
+            IncorrectCode.SetActive(!verified);
 
             foreach (TMP_InputField field in codeFields)
             {
@@ -270,6 +481,7 @@ public class OnboardingManagerNative : MonoBehaviour
         {
             verified = await VerifyPhoneOtp(enteredCode);
             Sprite resultSprite = verified ? codeSuccessful : codeIncorrect;
+            IncorrectCode.SetActive(!verified);
 
             foreach (TMP_InputField field in codeFields)
             {
@@ -287,6 +499,11 @@ public class OnboardingManagerNative : MonoBehaviour
 
     private void ResendOTP()
     {
+        RemoveCodeInputListeners();
+        otpString = "";
+        clearCodeField();
+        InitializeCodeInputListeners();
+
         if (timer <= 0)
         {
             timer = resendCooldown;
@@ -317,7 +534,7 @@ public class OnboardingManagerNative : MonoBehaviour
             emailToken = token;
             CloseAllScreens();
             defaultObjects.SetActive(false);
-            verificationText.text = email;
+            verificationText.text = MaskEmail(email);
             confirmationScreen.SetActive(true);
         }
         else
@@ -336,6 +553,7 @@ public class OnboardingManagerNative : MonoBehaviour
             //displayOutput("Email OTP verified successfully!");
             uiManager.authenticationCompleted(authToken);
             CloseAllScreens();
+            clearCodeField();
             phoneScreen.SetActive(true);
             defaultObjects.SetActive(true);
             clearCodeField();
@@ -360,8 +578,9 @@ public class OnboardingManagerNative : MonoBehaviour
             timer = 30;
             phoneToken = token;
             CloseAllScreens();
+            clearCodeField();
             defaultObjects.SetActive(false);
-            verificationText.text = number;
+            verificationText.text = MaskPhoneNumber(number);
             confirmationScreen.SetActive(true);
         }
         else
@@ -392,4 +611,30 @@ public class OnboardingManagerNative : MonoBehaviour
             return false;
         }
     }
+    private string MaskPhoneNumber(string phoneNumber)
+    {
+        if (phoneNumber.Length >= 10)
+        {
+            return $"{phoneNumber.Substring(0, 2)}****{phoneNumber.Substring(8)}";
+        }
+        return phoneNumber;
+    }
+
+    private string MaskEmail(string email)
+    {
+        if (string.IsNullOrEmpty(email) || !email.Contains("@"))
+            return email;
+
+        string[] parts = email.Split('@');
+        string localPart = parts[0];
+        string domain = parts[1];
+
+        if (localPart.Length > 2)
+        {
+            localPart = $"{localPart[0]}****{localPart[^1]}"; 
+        }
+
+        return $"{localPart}@{domain}";
+    }
+
 }
