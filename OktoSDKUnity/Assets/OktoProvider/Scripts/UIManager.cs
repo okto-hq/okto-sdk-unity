@@ -97,14 +97,21 @@ public class UIManager : MonoBehaviour
     private List<DisplayObject> displayObjects = new List<DisplayObject>();
     public OktoProviderSDK loginManager;
     private AuthDetails authenticationData;
+    private Credentials credentials;
 
-   
+    private void Start()
+    {
+        //setup();
+    }
+
+
     public void setup()
     {
         DataManager.Instance.apiKey = apiKeyText.text;
+        credentials = Resources.Load<Credentials>("Credentials");
         int selectedIndex = buildStage.value;
         DataManager.Instance.buildStage = buildStage.options[selectedIndex].text;
-        loginManager = new OktoProviderSDK(apiKeyText.text, buildStage.options[selectedIndex].text);
+        loginManager = new OktoProviderSDK(apiKeyText.text,buildStage.options[selectedIndex].text);
         OpeningPanel.SetActive(false);
         Screen.orientation = ScreenOrientation.LandscapeLeft;
         onboardingWidget.loggedIn();

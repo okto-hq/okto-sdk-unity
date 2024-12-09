@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using System.Linq;
 using System.Reflection;
 
+
 namespace OktoProvider
 {
     public class OktoProviderSDK : MonoBehaviour
@@ -20,9 +21,12 @@ namespace OktoProvider
         private readonly string baseUrl;
         private int JOB_MAX_RETRY = 50;
         private int JOB_RETRY_INTERVAL = 2;
-        public OktoProviderSDK(string apiKey, string buildType)
+        private Credentials credentials;
+        public OktoProviderSDK(string apikey,string buildType)
         {
-            this.apiKey = apiKey;
+            /*credentials = Resources.Load<Credentials>("Credentials");
+            this.apiKey = credentials.apiKey;*/
+            this.apiKey = apikey;
             baseUrl = GetBaseUrl(buildType);
             httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri(baseUrl);
