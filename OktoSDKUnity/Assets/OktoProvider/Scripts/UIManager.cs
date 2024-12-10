@@ -22,6 +22,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button getNFTOrder;
     [SerializeField] private Button createWallet;
     [SerializeField] private Button showModel;
+    [SerializeField] private Button onBoardingNative;
 
     //TokenTransfer
     [Header("Token Transfer UI")]
@@ -78,35 +79,43 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TMP_InputField otpInputFieldEmail;
     [SerializeField] private TMP_InputField otpInputFieldPhone;
 
-    //ApiKeys and BuildStage
-    [SerializeField] private TMP_InputField apiKeyText;
-    [SerializeField] private TMP_Dropdown buildStage;
-    [SerializeField] private GameObject OpeningPanel;
-
     [SerializeField] private Button SendEmailOtpButton;
     [SerializeField] private Button SendPhoneOtpButton;
+
+    [SerializeField] private OnboardingManager onboardingWidget;
+    [SerializeField] private OktoWebViewWidget webWidget;
+    [SerializeField] private GameObject onboardingUI;
 
     private string emailToken;
     private string phoneToken;
 
     private List<DisplayObject> displayObjects = new List<DisplayObject>();
-    private OktoProviderSDK loginManager;
+    public OktoProviderSDK oktoProvider;
     private AuthDetails authenticationData;
+    private Credentials credentials;
 
-   
-    public void setup()
+    private void Start()
     {
-        DataManager.Instance.apiKey = apiKeyText.text;
-        int selectedIndex = buildStage.value;
-        DataManager.Instance.buildStage = buildStage.options[selectedIndex].text;
-        loginManager = new OktoProviderSDK(apiKeyText.text, buildStage.options[selectedIndex].text);
-        OpeningPanel.SetActive(false);
-        //onAuthenticateClicked();
+        credentials = Resources.Load<Credentials>("Credentials");
+
+        if (credentials == null)
+        {
+            Debug.LogError("Failed to load 'Credentials'. Please ensure a 'Credentials' asset is present in the Resources folder.");
+        }
+        else
+        {
+            Debug.Log("Credentials loaded successfully.");
+            DataManager.Instance.apiKey = credentials.apiKey;
+        }
+
+        oktoProvider = new OktoProviderSDK();
+        DataManager.Instance.buildStage = "SANDBOX";
+        Debug.Log("OktoProviderSDK initialized.");
     }
 
     private void OnEnable()
     {
-
+        authenticateButton.onClick.AddListener(LoginPressedAsync);
         logoutButton.onClick.AddListener(logoutButtonPressed);
         getPortfolio.onClick.AddListener(OnGetPortfolioClicked);
         getUserDetail.onClick.AddListener(OnGetUserDetailClicked);
@@ -124,6 +133,7 @@ public class UIManager : MonoBehaviour
         transferNFTButton.onClick.AddListener(OnTransferNFTClicked);
         SendEmailOtpButton.onClick.AddListener(SendEmailOtp);
         SendPhoneOtpButton.onClick.AddListener(SendPhoneOtp);
+        onBoardingNative.onClick.AddListener(openOnboarding);
     }
 
     private void OnDisable()
@@ -145,43 +155,87 @@ public class UIManager : MonoBehaviour
         transferNFTButton.onClick.RemoveListener(OnTransferNFTClicked);
         SendEmailOtpButton.onClick.RemoveAllListeners();
         SendPhoneOtpButton.onClick.RemoveAllListeners();
+        onBoardingNative.onClick.RemoveListener(openOnboarding);
     }
 
 
-    private void logoutButtonPressed()
+    private async void LoginPressedAsync()
     {
-        loginManager.Logout();
-    }
+        Debug.Log("Attempting login with OktoProvider...");
 
-    public void onAuthenticateClicked()
-    {
-        if (DataManager.Instance.IdToken != null)
-        {
-            Authenticate(DataManager.Instance.IdToken);
-        }
-        else
-        {
-            Debug.LogError("Please sign in first.");
-        }
-    }
+        Exception error = null;
 
-    public async void Authenticate(string id)
-    {
         try
         {
-            Debug.Log("login" + loginManager);
-            Exception error = null;
-            (authenticationData, error) = await loginManager.AuthenticateAsync(id);
+            (authenticationData, error) = await oktoProvider.LoginGoogle();
+
+            if (error != null)
+            {
+                Debug.LogError($"Login failed with error: {error.Message}");
+            }
+            else
+            {
+                Debug.Log("Login successful!");
+            }
             Debug.Log("loginDone" + authenticationData);
             displayOutput("AuthTokens" + authenticationData.authToken.ToString());
-
+            DataManager.Instance.AuthToken = authenticationData.authToken;
+            webWidget.loggedIn();
             if (authenticationData != null)
             {
                 Debug.Log("Login successful.");
                 loginText.text = "Logged In";
                 try
                 {
-                    var wallet = await loginManager.GetWallets();
+                    var wallet = await oktoProvider.GetWallets();
+                    if (wallet.wallets.Count > 0)
+                    {
+                        createWallet.gameObject.SetActive(false);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.Log("Please create wallet.");
+                }
+
+            }
+            else
+            {
+                Debug.LogError("Login failed: Invalid API Key.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Unexpected error during login: {ex.Message}");
+        }
+    }
+
+
+    private void logoutButtonPressed()
+    {
+        oktoProvider.Logout();
+        Debug.Log("Log out successful.");
+        loginText.text = "Login";
+        createWallet.gameObject.SetActive(true);
+    }
+
+    public async void Authenticate(string id)
+    {
+        try
+        {
+            Debug.Log("login" + oktoProvider);
+            Exception error = null;
+            (authenticationData, error) = await oktoProvider.AuthenticateAsync(id);
+            Debug.Log("loginDone" + authenticationData);
+            displayOutput("AuthTokens" + authenticationData.authToken.ToString());
+            webWidget.loggedIn();
+            if (authenticationData != null)
+            {
+                Debug.Log("Login successful.");
+                loginText.text = "Logged In";
+                try
+                {
+                    var wallet = await oktoProvider.GetWallets();
                     if (wallet.wallets.Count > 0)
                     {
                         createWallet.gameObject.SetActive(false);
@@ -206,11 +260,12 @@ public class UIManager : MonoBehaviour
 
     public async void authenticationCompleted(string token)
     {
+        webWidget.loggedIn();
         Debug.Log("loginDone");
         displayOutput("AuthTokens" + token);
         DataManager.Instance.AuthToken = token;
         loginText.text = "Logged In";
-        var wallet = await loginManager.GetWallets();
+        var wallet = await oktoProvider.GetWallets();
         if (wallet.wallets.Count > 0)
         {
             createWallet.gameObject.SetActive(false);
@@ -221,7 +276,7 @@ public class UIManager : MonoBehaviour
     {
         try
         {
-            var portfolio = await loginManager.GetPortfolio();
+            var portfolio = await oktoProvider.GetPortfolio();
             foreach (Portfolio token in portfolio.tokens)
             {
                 DisplayObject dObject = Instantiate(displayObject, objectHolder);
@@ -242,7 +297,7 @@ public class UIManager : MonoBehaviour
     {
         try
         {
-            var networks = await loginManager.GetSupportedNetworks();
+            var networks = await oktoProvider.GetSupportedNetworks();
             foreach (TokenNetwork token in networks.network)
             {
                 DisplayObject dObject = Instantiate(displayObject, objectHolder);
@@ -268,7 +323,7 @@ public class UIManager : MonoBehaviour
         tokenData.token_address = tokenAddress.text;
         try
         {
-            var tokenTransferData = await loginManager.TransferTokens_(tokenData);
+            var tokenTransferData = await oktoProvider.TransferTokens_(tokenData);
             displayOutput("Order Id: " + tokenTransferData.orderId);
             Debug.Log("Order Id: " + tokenTransferData.orderId);
         }
@@ -291,7 +346,7 @@ public class UIManager : MonoBehaviour
 
         try
         {
-            var nftTransferData = await loginManager.transferNft(nftData);
+            var nftTransferData = await oktoProvider.transferNft(nftData);
             Debug.Log("Order Id: " + nftTransferData.order_id);
             displayOutput("Order Id: " + nftTransferData.order_id);
         }
@@ -316,7 +371,7 @@ public class UIManager : MonoBehaviour
         tokenData.transaction = sol;
         try
         {
-            var transactionData = await loginManager.executeRawTransactionSol(tokenData);
+            var transactionData = await oktoProvider.executeRawTransactionSol(tokenData);
             Debug.Log("Job Id: " + transactionData.orderId);
             displayOutput("Job Id: " + transactionData.orderId);
         }
@@ -338,7 +393,7 @@ public class UIManager : MonoBehaviour
         tokenData.transaction = evm;
         try
         {
-            var transactionData = await loginManager.executeRawTransactionPol(tokenData);
+            var transactionData = await oktoProvider.executeRawTransactionPol(tokenData);
             Debug.Log("Job Id: " + transactionData.jobId);
             displayOutput("Job Id: " + transactionData.jobId);
         }
@@ -368,7 +423,7 @@ public class UIManager : MonoBehaviour
 
         try
         {
-            var transactionData = await loginManager.executeRawTransactionSol(tokenData);
+            var transactionData = await oktoProvider.executeRawTransactionSol(tokenData);
             Debug.Log("Order Id: " + transactionData.orderId);
             displayOutput("Order Id: " + transactionData.orderId);
         }
@@ -383,7 +438,7 @@ public class UIManager : MonoBehaviour
     {
         try
         {
-            var userDetail = await loginManager.GetUserDetails();
+            var userDetail = await oktoProvider.GetUserDetails();
             displayOutput("User Id: " + userDetail.user_id + " Email" + userDetail.email);
             Debug.Log("User Detail: " + userDetail);
         }
@@ -397,7 +452,7 @@ public class UIManager : MonoBehaviour
     {
         try
         {
-            var tokens = await loginManager.GetSupportedTokens();
+            var tokens = await oktoProvider.GetSupportedTokens();
             foreach (Token token in tokens.tokens)
             {
                 DisplayObject dObject = Instantiate(displayObject,objectHolder);
@@ -419,7 +474,7 @@ public class UIManager : MonoBehaviour
         try
         {
             OrderQuery query = new OrderQuery();
-            var orders = await loginManager.OrderHistory(query);
+            var orders = await oktoProvider.OrderHistory(query);
             displayOutput("Number of orders " + orders.total);
             Debug.Log("Number of orders " + orders.total);
         }
@@ -433,7 +488,7 @@ public class UIManager : MonoBehaviour
     {
         try
         {
-            var wallet = await loginManager.GetWallets();
+            var wallet = await oktoProvider.GetWallets();
             if(wallet.wallets.Count == 0)
             {
                 displayOutput("You need to create wallet first.");
@@ -460,7 +515,7 @@ public class UIManager : MonoBehaviour
         try
         {
             NftOrderDetailsQuery query = new NftOrderDetailsQuery();
-            var nftOrder = await loginManager.GetNftOrderDetails(query);
+            var nftOrder = await oktoProvider.GetNftOrderDetails(query);
             displayOutput("Number of NFT Orders: " + nftOrder.count.ToString());
             Debug.Log("NFT Order: " + nftOrder);
         }
@@ -474,7 +529,7 @@ public class UIManager : MonoBehaviour
     {
         try
         {
-            var walletCreationResult = await loginManager.CreateWallet();
+            var walletCreationResult = await oktoProvider.CreateWallet();
             displayOutput("Wallet created");
             Debug.Log("Wallet created: " + walletCreationResult);
         }
@@ -493,7 +548,7 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        var (success, token, error) = await loginManager.SendEmailOtpAsync(email);
+        var (success, token, error) = await oktoProvider.SendEmailOtpAsync(email);
         if (success)
         {
             emailToken = token;
@@ -519,7 +574,7 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        var (success, authToken, error) = await loginManager.VerifyEmailOtpAsync(email, otp, emailToken);
+        var (success, authToken, error) = await oktoProvider.VerifyEmailOtpAsync(email, otp, emailToken);
         if (success)
         {
             displayOutput("Email OTP verified successfully!");
@@ -542,7 +597,7 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        var (success, token, error) = await loginManager.SendPhoneOtpAsync(phoneNumber, countryCode);
+        var (success, token, error) = await oktoProvider.SendPhoneOtpAsync(phoneNumber, countryCode);
         if (success)
         {
             phoneToken = token;
@@ -569,7 +624,7 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        var (success, authToken, error) = await loginManager.VerifyPhoneOtpAsync(phoneNumber, countryCode, otp, phoneToken);
+        var (success, authToken, error) = await oktoProvider.VerifyPhoneOtpAsync(phoneNumber, countryCode, otp, phoneToken);
         if (success)
         {
              displayOutput("Phone OTP verified successfully!");
@@ -604,5 +659,11 @@ public class UIManager : MonoBehaviour
         displayText.gameObject.SetActive(false);
         displayPanel.gameObject.SetActive(true);
         scrollObject.gameObject.SetActive(true);
+    }
+
+    private void openOnboarding()
+    {
+        Screen.orientation = ScreenOrientation.Portrait;
+        onboardingUI.SetActive(true);
     }
 }
