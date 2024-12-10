@@ -106,7 +106,7 @@ public class OnboardingManager : MonoBehaviour
        
     }
 
-    void OpenOnboarding()
+    public void OpenOnboarding()
     {
 
         // Set the screen orientation to Portrait
