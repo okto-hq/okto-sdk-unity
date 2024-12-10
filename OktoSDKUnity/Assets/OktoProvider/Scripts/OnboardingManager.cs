@@ -10,7 +10,6 @@ public class OnboardingManager : MonoBehaviour
     public Button closeWebViewButton;
 
     [SerializeField] private UIManager uiManager;
-    [SerializeField] private GoogleLoginManager loginManager;
     public enum AuthType { Email, Phone, GAuth }
     public AuthType authType = AuthType.Email;
 
@@ -135,7 +134,7 @@ public class OnboardingManager : MonoBehaviour
         }
         else if (message.Contains("g_auth"))
         {
-            loginManager.LoginGoogle();
+            uiManager.oktoProvider.LoginGoogle();
             CloseWebView();
         }
         else if (message.Contains("copy_text"))
@@ -147,7 +146,6 @@ public class OnboardingManager : MonoBehaviour
 
     void SendCopiedTextToWebsite(string copiedText)
     {
-        // Construct the JavaScript snippet
         string jsCode = $@"
         if (window) {{
             window.postMessage(
@@ -160,7 +158,6 @@ public class OnboardingManager : MonoBehaviour
         }}
     ";
 
-        // Inject the JavaScript into the WebView
         webViewObject.EvaluateJS(jsCode);
     }
 

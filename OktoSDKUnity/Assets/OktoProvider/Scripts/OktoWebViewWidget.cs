@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.UI; // For UI components like buttons
+using UnityEngine.UI; 
 
 public class OktoWebViewWidget : MonoBehaviour
 {
@@ -81,19 +81,16 @@ public class OktoWebViewWidget : MonoBehaviour
             window.localStorage.setItem('backgroundColor', '{defaultTheme.backgroundColor}');
         ";
 
-        // Add auth token if available
         if (!string.IsNullOrEmpty(authToken))
         {
             injectJs += $"window.localStorage.setItem('authToken', '{authToken}');";
         }
 
-        // Inject JavaScript into WebView
         webView.EvaluateJS(injectJs);
     }
 
     void Update()
     {
-        // Handle back navigation (optional)
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (webView.CanGoBack())
@@ -102,7 +99,7 @@ public class OktoWebViewWidget : MonoBehaviour
             }
             else
             {
-                webView.SetVisibility(false); // Close the WebView
+                webView.SetVisibility(false); 
             }
         }
     }

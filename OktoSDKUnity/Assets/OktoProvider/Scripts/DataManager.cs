@@ -7,7 +7,6 @@ public class DataManager : MonoBehaviour
     public string AuthToken { get; set; }
     public string RefreshToken { get; set; }
     public string DeviceToken { get; set; }
-    public string IdToken { get; set; }
     public string apiKey { get; set; }
     public string buildStage { get; set; }
 

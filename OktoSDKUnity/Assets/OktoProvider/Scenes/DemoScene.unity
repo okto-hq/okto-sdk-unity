@@ -15185,7 +15185,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 229.4961, y: -19.817902}
+  m_AnchoredPosition: {x: 229.4961, y: -19.818024}
   m_SizeDelta: {x: -1507.2218, y: -741.7973}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1152309186
@@ -16848,7 +16848,7 @@ MonoBehaviour:
   codeSuccessful: {fileID: 21300000, guid: 3220aace6a6efde4eaa389d6892f0798, type: 3}
   codeIncorrect: {fileID: 21300000, guid: 0cd3f4901ed9b9e4288d1345dffe2ada, type: 3}
   uiManager: {fileID: 2142586379}
-  loginManager: {fileID: 2142586382}
+  loginManager: {fileID: 0}
   otpString: 
 --- !u!1 &1281667401
 GameObject:
@@ -23840,7 +23840,7 @@ MonoBehaviour:
   openOnboardingButton: {fileID: 1790473489}
   closeWebViewButton: {fileID: 425413766}
   uiManager: {fileID: 2142586379}
-  loginManager: {fileID: 2142586382}
+  loginManager: {fileID: 0}
   authType: 0
   initialHeightPercentage: 0.8
   textPrimaryColor: 0xFFFFFFFF
@@ -28029,7 +28029,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -220.081, y: -24.820831}
+  m_AnchoredPosition: {x: -220.08124, y: -24.820953}
   m_SizeDelta: {x: -1526.3754, y: -751.8041}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2008167121
@@ -29194,7 +29194,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 2142586382}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GoogleLoginManager, Assembly-CSharp
         m_MethodName: LoginGoogle
         m_Mode: 1
@@ -29950,7 +29950,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2142586381}
   - component: {fileID: 2142586379}
-  - component: {fileID: 2142586382}
   m_Layer: 0
   m_Name: UIManager
   m_TagString: Untagged
@@ -30020,9 +30019,6 @@ MonoBehaviour:
   countryCodeInputField: {fileID: 1072001562}
   otpInputFieldEmail: {fileID: 1559977328}
   otpInputFieldPhone: {fileID: 266353559}
-  apiKeyText: {fileID: 0}
-  buildStage: {fileID: 0}
-  OpeningPanel: {fileID: 0}
   SendEmailOtpButton: {fileID: 670747718}
   SendPhoneOtpButton: {fileID: 860328369}
   onboardingWidget: {fileID: 1687473167}
@@ -30044,19 +30040,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1191730182}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2142586382
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2142586378}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f04500155567f524ab6d5bbca722908d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  UIManager: {fileID: 2142586379}
 --- !u!1 &2144365886
 GameObject:
   m_ObjectHideFlags: 0

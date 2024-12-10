@@ -9,7 +9,8 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Linq;
 using System.Reflection;
-
+using GooglePlayGames.BasicApi;
+using GooglePlayGames;
 
 namespace OktoProvider
 {
@@ -22,16 +23,68 @@ namespace OktoProvider
         private int JOB_MAX_RETRY = 50;
         private int JOB_RETRY_INTERVAL = 2;
         private Credentials credentials;
-        public OktoProviderSDK(string apikey,string buildType)
+        public OktoProviderSDK()
         {
-            /*credentials = Resources.Load<Credentials>("Credentials");
-            this.apiKey = credentials.apiKey;*/
-            this.apiKey = apikey;
-            baseUrl = GetBaseUrl(buildType);
+            InitializePlayGamesLogin();
+            credentials = Resources.Load<Credentials>("Credentials");
+            this.apiKey = credentials.apiKey;
+            baseUrl = GetBaseUrl("");
             httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri(baseUrl);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
+        }
+
+        void InitializePlayGamesLogin()
+        {
+            var config = new PlayGamesClientConfiguration.Builder()
+                .RequestIdToken()
+                .RequestEmail()
+                .Build();
+
+            PlayGamesPlatform.InitializeInstance(config);
+            PlayGamesPlatform.DebugLogEnabled = true;
+            PlayGamesPlatform.Activate();
+            Debug.Log(config);
+        }
+        public async Task<(AuthDetails result, Exception error)> LoginGoogle()
+        {
+            var tcs = new TaskCompletionSource<(string idToken, Exception error)>();
+
+            // Authenticate with Play Games
+            Social.localUser.Authenticate(success =>
+            {
+                if (success)
+                {
+                    string idToken = ((PlayGamesLocalUser)Social.localUser).GetIdToken();
+                    Debug.Log($"Google Login successful. IdToken: {idToken}");
+                    tcs.SetResult((idToken, null));
+                }
+                else
+                {
+                    Debug.LogWarning("Google Login failed.");
+                    tcs.SetResult((null, new Exception("Google authentication failed.")));
+                }
+            });
+
+            // Wait for Play Games authentication result
+            var (idToken, authError) = await tcs.Task;
+
+            if (authError != null || string.IsNullOrEmpty(idToken))
+            {
+                return (null, authError ?? new Exception("IdToken is null or empty."));
+            }
+
+            // Pass IdToken to backend authentication
+            return await AuthenticateAsync(idToken);
+        }
+
+
+
+        [Serializable]
+        private class TokenResponse
+        {
+            public string id_token;
         }
 
         private string GetBaseUrl(string buildType)

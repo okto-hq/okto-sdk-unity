@@ -16,7 +16,6 @@ public class CredentialsEditor : EditorWindow
     {
         GUILayout.Label("SDK Credentials", EditorStyles.boldLabel);
 
-        // Load the credentials from the Resources folder (only in the Editor)
         if (credentials == null)
         {
             credentials = Resources.Load<Credentials>("Credentials");
@@ -31,12 +30,11 @@ public class CredentialsEditor : EditorWindow
         }
         else
         {
-            // Allow editing of the credentials in the Editor
             credentials.apiKey = EditorGUILayout.TextField("API Key", credentials.apiKey);
 
             if (GUI.changed)
             {
-                EditorUtility.SetDirty(credentials); // Mark as dirty to save changes
+                EditorUtility.SetDirty(credentials); 
                 AssetDatabase.SaveAssets();
             }
         }

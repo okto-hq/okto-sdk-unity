@@ -50,7 +50,6 @@ public class OnboardingManagerNative : MonoBehaviour
 
 
     [SerializeField] private UIManager uiManager;
-    [SerializeField] private GoogleLoginManager loginManager;
     private string emailToken;
     private string phoneToken;
 
@@ -111,7 +110,7 @@ public class OnboardingManagerNative : MonoBehaviour
 
     private void GoogleLogin()
     {
-        loginManager.LoginGoogle();
+        uiManager.oktoProvider.LoginGoogle();
         CloseAllScreens();
         phoneScreen.SetActive(true);
         defaultObjects.SetActive(true);
@@ -381,7 +380,7 @@ public class OnboardingManagerNative : MonoBehaviour
             return;
         }
 
-        var (success, token, error) = await uiManager.loginManager.SendEmailOtpAsync(email);
+        var (success, token, error) = await uiManager.oktoProvider.SendEmailOtpAsync(email);
         if (success)
         {
             timer = 30;
@@ -402,7 +401,7 @@ public class OnboardingManagerNative : MonoBehaviour
     {
         string email = emailAddress.text;
 
-        var (success, authToken, error) = await uiManager.loginManager.VerifyEmailOtpAsync(email, otp, emailToken);
+        var (success, authToken, error) = await uiManager.oktoProvider.VerifyEmailOtpAsync(email, otp, emailToken);
         if (success)
         {
             uiManager.authenticationCompleted(authToken);
@@ -425,7 +424,7 @@ public class OnboardingManagerNative : MonoBehaviour
         string number = phoneNumber.text;
         string countryCode = "IN";
 
-        var (success, token, error) = await uiManager.loginManager.SendPhoneOtpAsync(number, countryCode);
+        var (success, token, error) = await uiManager.oktoProvider.SendPhoneOtpAsync(number, countryCode);
         if (success)
         {
             timer = 30;
@@ -443,7 +442,7 @@ public class OnboardingManagerNative : MonoBehaviour
         string number = phoneNumber.text;
         string countryCode = "IN";
 
-        var (success, authToken, error) = await uiManager.loginManager.VerifyPhoneOtpAsync(number, countryCode, otp, phoneToken);
+        var (success, authToken, error) = await uiManager.oktoProvider.VerifyPhoneOtpAsync(number, countryCode, otp, phoneToken);
         if (success)
         {
             uiManager.authenticationCompleted(authToken);
