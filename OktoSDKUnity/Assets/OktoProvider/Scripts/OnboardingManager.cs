@@ -138,6 +138,8 @@ public class OnboardingManager : MonoBehaviour
             MessageData messageVal = JsonUtility.FromJson<MessageData>(message);
             string authToken = messageVal.data.auth_token;
             string refreshAuthToken = messageVal.data.refresh_auth_token;
+            OktoProviderSDK.Instance.AuthToken = authToken;
+            OktoProviderSDK.Instance.DeviceToken = refreshAuthToken;
             Debug.Log($"Auth Success: {authToken}");
             OnLoginSuccess(authToken);
             CloseWebView();
