@@ -1,3 +1,4 @@
+using OktoProvider;
 using System;
 using System.Collections;
 using System.Threading.Tasks;
@@ -47,9 +48,11 @@ public class OnboardingManagerNative : MonoBehaviour
     [SerializeField] private Sprite codeTyping;
     [SerializeField] private Sprite codeSuccessful;
     [SerializeField] private Sprite codeIncorrect;
+    [SerializeField] private Sprite logoEmail;
+    [SerializeField] private Sprite logoPhone;
 
+    [SerializeField] private Image logoImage;
 
-    [SerializeField] private UIManager uiManager;
     private string emailToken;
     private string phoneToken;
 
@@ -77,7 +80,7 @@ public class OnboardingManagerNative : MonoBehaviour
         resendOTP.onClick.AddListener(ResendOTP);
         sendCode.onClick.AddListener(SendEmailOtp);
         sendOTP.onClick.AddListener(SendPhoneOtp);
-        googleAccount.onClick.AddListener(GoogleLogin);
+        googleAccount.onClick.AddListener(GoogleLoginAsync);
         backButtonConfirm.onClick.AddListener(backToMain);
         backButtonMain.onClick.AddListener(backToHome);
 
@@ -96,7 +99,7 @@ public class OnboardingManagerNative : MonoBehaviour
     {
         if (phone.Length > 10)
         {
-            phoneNumber.text = phone.Substring(0, 10); 
+            phoneNumber.text = phone.Substring(0, 10);
         }
 
         sendOTP.interactable = phoneNumber.text.Length == 10;
@@ -108,9 +111,24 @@ public class OnboardingManagerNative : MonoBehaviour
         sendCode.interactable = isValidEmail;
     }
 
-    private void GoogleLogin()
+    private async void GoogleLoginAsync()
     {
-        uiManager.oktoProvider.LoginGoogle();
+        AuthDetails authenticationData;
+        Exception error;
+        (authenticationData, error) = await OktoProviderSDK.Instance.LoginGoogle();
+
+        if (error != null)
+        {
+            Debug.LogError($"Login failed with error: {error.Message}");
+        }
+        else
+        {
+            Debug.Log("Login successful!");
+        }
+        Debug.Log("loginDone " + authenticationData.authToken);
+        OktoProviderSDK.Instance.AuthToken = authenticationData.authToken;
+        OktoProviderSDK.Instance.DeviceToken = authenticationData.deviceToken;
+        OktoProviderSDK.Instance.RefreshToken = authenticationData.refreshToken;
         CloseAllScreens();
         phoneScreen.SetActive(true);
         defaultObjects.SetActive(true);
@@ -207,15 +225,15 @@ public class OnboardingManagerNative : MonoBehaviour
 
         for (int i = 0; i < digitFields.Length; i++)
         {
-            digitFields[i].text = ""; 
+            digitFields[i].text = "";
         }
 
         for (int i = 0; i < currentInput.Length && i < digitFields.Length; i++)
         {
-            digitFields[i].text = currentInput[i].ToString(); 
+            digitFields[i].text = currentInput[i].ToString();
         }
 
-        currentIndex = Mathf.Clamp(currentInput.Length, 0, digitFields.Length-1);
+        currentIndex = Mathf.Clamp(currentInput.Length, 0, digitFields.Length - 1);
 
         UpdateHighlight();
 
@@ -229,49 +247,21 @@ public class OnboardingManagerNative : MonoBehaviour
 
     void UpdateHighlight(string argument = null)
     {
-        foreach (var field in digitFields)
+        if (onboardingScreen.activeInHierarchy)
         {
-            Image fieldImage = field.transform.GetComponentInParent<Image>();
-            fieldImage.sprite = codeDefault;
+            foreach (var field in digitFields)
+            {
+                Image fieldImage = field.transform.GetComponentInParent<Image>();
+                fieldImage.sprite = codeDefault;
+            }
+            HighlightSelectedField(currentIndex);
         }
-        HighlightSelectedField(currentIndex);
     }
 
     private void HighlightSelectedField(int index)
     {
         Image fieldImage = digitFields[index].transform.GetComponentInParent<Image>();
         fieldImage.sprite = codeTyping;
-    }
-
-    private void SwitchToInputField(TMP_InputField targetInputField)
-    {
-        Debug.Log($"Switching focus to {targetInputField.name}");
-
-        StartCoroutine(SafeSwitchToInputField(targetInputField));
-
-    }
-    private IEnumerator SafeSwitchToInputField(TMP_InputField targetInputField)
-    {
-        yield return new WaitForEndOfFrame();
-
-        targetInputField.Select();
-        targetInputField.interactable = true;
-        if(otpString.Length > 1)
-        {
-            if (IncorrectCode.activeInHierarchy)
-            {
-                targetInputField.transform.GetComponent<Image>().sprite = codeIncorrect;
-            }
-            else
-            {
-                targetInputField.transform.GetComponent<Image>().sprite = codeDefault;
-            }
-        }
-        else if (otpString.Length == 1)
-        {
-            targetInputField.transform.GetComponent<Image>().sprite = codeTyping;
-        }
-
     }
 
     private bool AllFieldsFilled(TMP_InputField[] codeFields)
@@ -350,7 +340,7 @@ public class OnboardingManagerNative : MonoBehaviour
             {
                 failedCodeField();
             }
-        }      
+        }
     }
 
 
@@ -376,11 +366,11 @@ public class OnboardingManagerNative : MonoBehaviour
         string email = emailAddress.text;
         if (string.IsNullOrEmpty(email))
         {
-            uiManager.displayOutput("Email cannot be empty.");
+            Debug.Log("Email cannot be empty.");
             return;
         }
 
-        var (success, token, error) = await uiManager.oktoProvider.SendEmailOtpAsync(email);
+        var (success, token, error) = await OktoProviderSDK.Instance.SendEmailOtpAsync(email);
         if (success)
         {
             timer = 30;
@@ -389,11 +379,13 @@ public class OnboardingManagerNative : MonoBehaviour
             clearCodeField();
             defaultObjects.SetActive(false);
             verificationText.text = MaskEmail(email);
+            logoImage.sprite = logoEmail;
+            clearCodeField();
             confirmationScreen.SetActive(true);
         }
         else
         {
-            uiManager.displayOutput($"Error: {error?.Message ?? "Failed to send email OTP"}");
+            Debug.LogError($"Error: {error?.Message ?? "Failed to send email OTP"}");
         }
     }
 
@@ -401,10 +393,10 @@ public class OnboardingManagerNative : MonoBehaviour
     {
         string email = emailAddress.text;
 
-        var (success, authToken, error) = await uiManager.oktoProvider.VerifyEmailOtpAsync(email, otp, emailToken);
+        var (success, authToken, error) = await OktoProviderSDK.Instance.VerifyEmailOtpAsync(email, otp, emailToken);
         if (success)
         {
-            uiManager.authenticationCompleted(authToken);
+            Debug.Log(authToken);
             CloseAllScreens();
             clearCodeField();
             phoneScreen.SetActive(true);
@@ -424,7 +416,7 @@ public class OnboardingManagerNative : MonoBehaviour
         string number = phoneNumber.text;
         string countryCode = "IN";
 
-        var (success, token, error) = await uiManager.oktoProvider.SendPhoneOtpAsync(number, countryCode);
+        var (success, token, error) = await OktoProviderSDK.Instance.SendPhoneOtpAsync(number, countryCode);
         if (success)
         {
             timer = 30;
@@ -433,6 +425,8 @@ public class OnboardingManagerNative : MonoBehaviour
             clearCodeField();
             defaultObjects.SetActive(false);
             verificationText.text = MaskPhoneNumber(number);
+            logoImage.sprite = logoPhone;
+            clearCodeField();
             confirmationScreen.SetActive(true);
         }
     }
@@ -442,10 +436,10 @@ public class OnboardingManagerNative : MonoBehaviour
         string number = phoneNumber.text;
         string countryCode = "IN";
 
-        var (success, authToken, error) = await uiManager.oktoProvider.VerifyPhoneOtpAsync(number, countryCode, otp, phoneToken);
+        var (success, authToken, error) = await OktoProviderSDK.Instance.VerifyPhoneOtpAsync(number, countryCode, otp, phoneToken);
         if (success)
         {
-            uiManager.authenticationCompleted(authToken);
+            Debug.Log(authToken);
             CloseAllScreens();
             phoneScreen.SetActive(true);
             defaultObjects.SetActive(true);
@@ -479,7 +473,7 @@ public class OnboardingManagerNative : MonoBehaviour
 
         if (localPart.Length > 2)
         {
-            localPart = $"{localPart[0]}****{localPart[^1]}"; 
+            localPart = $"{localPart[0]}****{localPart[^1]}";
         }
 
         return $"{localPart}@{domain}";
