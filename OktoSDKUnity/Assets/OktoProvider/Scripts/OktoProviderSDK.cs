@@ -9,74 +9,112 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Linq;
 using System.Reflection;
-using GooglePlayGames.BasicApi;
-using GooglePlayGames;
+#if ENABLE_GOOGLE_PLAY_GAMES
+    using GooglePlayGames.BasicApi;
+    using GooglePlayGames;
+#endif
+
 
 namespace OktoProvider
 {
     public class OktoProviderSDK : MonoBehaviour
     {
+        private static OktoProviderSDK _instance;
+        public static OktoProviderSDK Instance => _instance ?? throw new Exception("SDK not initialized. Ensure OktoProviderSDK is in the scene.");
         private static HttpClient httpClient;
-        private readonly string apiKey;
         private AuthDetails authDetails;
-        private readonly string baseUrl;
+        private string baseUrl;
         private int JOB_MAX_RETRY = 50;
         private int JOB_RETRY_INTERVAL = 2;
         private Credentials credentials;
-        public OktoProviderSDK()
+        public static event Action OnSDKInitialized;
+
+        public string AuthToken { get; set; }
+        public string RefreshToken { get; set; }
+        public string DeviceToken { get; set; }
+        public string apiKey { get; set; }
+        public string buildStage { get; set; }
+
+        private void Awake()
+        {
+            if (_instance == null)
+            {
+                _instance = this;
+                DontDestroyOnLoad(gameObject);
+                InitializeSDK();
+            }
+            else
+            {
+                Destroy(gameObject); 
+            }
+        }
+
+        private void InitializeSDK()
         {
             InitializePlayGamesLogin();
             credentials = Resources.Load<Credentials>("Credentials");
-            this.apiKey = credentials.apiKey;
+            apiKey = credentials.apiKey;
             baseUrl = GetBaseUrl("");
+            buildStage = "SANDBOX";
+            apiKey = apiKey;
             httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri(baseUrl);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
+            OnSDKInitialized?.Invoke();
         }
 
         void InitializePlayGamesLogin()
         {
-            var config = new PlayGamesClientConfiguration.Builder()
-                .RequestIdToken()
-                .RequestEmail()
-                .Build();
+#if ENABLE_GOOGLE_PLAY_GAMES
+                var config = new PlayGamesClientConfiguration.Builder()
+                    .RequestIdToken()
+                    .RequestEmail()
+                    .Build();
 
-            PlayGamesPlatform.InitializeInstance(config);
-            PlayGamesPlatform.DebugLogEnabled = true;
-            PlayGamesPlatform.Activate();
-            Debug.Log(config);
+                PlayGamesPlatform.InitializeInstance(config);
+                PlayGamesPlatform.DebugLogEnabled = true;
+                PlayGamesPlatform.Activate();
+#else
+            Debug.LogWarning("Google Sign-In is not enabled. Please add ENABLE_GOOGLE_PLAY_GAMES to scripting define symbols.");
+
+#endif
         }
         public async Task<(AuthDetails result, Exception error)> LoginGoogle()
         {
-            var tcs = new TaskCompletionSource<(string idToken, Exception error)>();
+#if ENABLE_GOOGLE_PLAY_GAMES
+                var tcs = new TaskCompletionSource<(string idToken, Exception error)>();
 
-            // Authenticate with Play Games
-            Social.localUser.Authenticate(success =>
-            {
-                if (success)
+                // Authenticate with Play Games
+                Social.localUser.Authenticate(success =>
                 {
-                    string idToken = ((PlayGamesLocalUser)Social.localUser).GetIdToken();
-                    Debug.Log($"Google Login successful. IdToken: {idToken}");
-                    tcs.SetResult((idToken, null));
-                }
-                else
+                    if (success)
+                    {
+                        string idToken = ((PlayGamesLocalUser)Social.localUser).GetIdToken();
+                        Debug.Log($"Google Login successful. IdToken: {idToken}");
+                        tcs.SetResult((idToken, null));
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Google Login failed.");
+                        tcs.SetResult((null, new Exception("Google authentication failed.")));
+                    }
+                });
+
+                // Wait for Play Games authentication result
+                var (idToken, authError) = await tcs.Task;
+
+                if (authError != null || string.IsNullOrEmpty(idToken))
                 {
-                    Debug.LogWarning("Google Login failed.");
-                    tcs.SetResult((null, new Exception("Google authentication failed.")));
+                    return (null, authError ?? new Exception("IdToken is null or empty."));
                 }
-            });
 
-            // Wait for Play Games authentication result
-            var (idToken, authError) = await tcs.Task;
-
-            if (authError != null || string.IsNullOrEmpty(idToken))
-            {
-                return (null, authError ?? new Exception("IdToken is null or empty."));
-            }
-
-            // Pass IdToken to backend authentication
-            return await AuthenticateAsync(idToken);
+                // Pass IdToken to backend authentication
+                return await AuthenticateAsync(idToken);
+#else
+            Debug.LogError("Google Sign-In is not enabled. Please add ENABLE_GOOGLE_PLAY_GAMES to scripting define symbols.");
+            return (null, null);
+#endif
         }
 
 
@@ -120,11 +158,25 @@ namespace OktoProvider
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
         }
 
+        public AuthDetails GetAuthDetails()
+        {
+            if (AuthToken.Length > 0)
+            {
+                return new AuthDetails
+                {
+                    authToken = AuthToken ?? string.Empty,
+                    refreshToken = RefreshToken ?? string.Empty,
+                    deviceToken = DeviceToken ?? string.Empty
+                };
+            }
+            return null;
+        }
+
         public async Task UpdateAuthDetails(AuthDetails newAuthDetails)
         {
-            DataManager.Instance.AuthToken = newAuthDetails.authToken;
-            DataManager.Instance.RefreshToken = newAuthDetails.refreshToken;
-            DataManager.Instance.DeviceToken = newAuthDetails.deviceToken;
+            AuthToken = newAuthDetails.authToken;
+            RefreshToken = newAuthDetails.refreshToken;
+            DeviceToken = newAuthDetails.deviceToken;
             authDetails = newAuthDetails;
             //SetAuthorizationHeader(authDetails.authToken);
             //await SaveAuthDetailsToLocalStorage(authDetails);
@@ -203,7 +255,7 @@ namespace OktoProvider
             }
         }
 
-        public async Task<AuthDetails> RefreshToken()
+        public async Task<AuthDetails> RefreshToken_()
         {
             if (authDetails != null)
             {
@@ -246,11 +298,11 @@ namespace OktoProvider
             {
                 httpClient.DefaultRequestHeaders.Clear();
                 httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36");
-                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + DataManager.Instance.AuthToken);
+                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + AuthToken);
                 var response = await httpClient.GetAsync($"{baseUrl}/api"+url);
                 Debug.Log(response);
                 Debug.Log($"{baseUrl}/api" + url);
-                Debug.Log(DataManager.Instance.AuthToken);
+                Debug.Log(AuthToken);
                 response.EnsureSuccessStatusCode();
                 var content = await response.Content.ReadAsStringAsync();
                 Debug.Log(content);
@@ -277,8 +329,8 @@ namespace OktoProvider
                 var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
                 httpClient.DefaultRequestHeaders.Clear();
                 httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36");
-                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + DataManager.Instance.AuthToken);
-                Debug.Log(DataManager.Instance.AuthToken);
+                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + AuthToken);
+                Debug.Log(AuthToken);
                 Debug.Log(jsonContent);
                 var response = await httpClient.PostAsync($"{baseUrl}/api" + endpoint, content);
                

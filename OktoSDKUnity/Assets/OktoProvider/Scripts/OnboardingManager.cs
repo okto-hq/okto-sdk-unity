@@ -1,4 +1,6 @@
+using OktoProvider;
 using System;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,8 +10,6 @@ public class OnboardingManager : MonoBehaviour
     [Header("WebView Configuration")]
     public Button openOnboardingButton;
     public Button closeWebViewButton;
-
-    [SerializeField] private UIManager uiManager;
     public enum AuthType { Email, Phone, GAuth }
     public AuthType authType = AuthType.Email;
 
@@ -31,9 +31,19 @@ public class OnboardingManager : MonoBehaviour
 
     private WebViewObject webViewObject;
 
+    private void Awake()
+    {
+        OktoProviderSDK.OnSDKInitialized += initOnboarding; // Subscribe to the event
+    }
+
+    private void OnDestroy()
+    {
+        OktoProviderSDK.OnSDKInitialized -= initOnboarding; // Unsubscribe to avoid memory leaks
+    }
+
     private string GetBuildUrl()
     {
-        switch (DataManager.Instance.buildStage)
+        switch (OktoProviderSDK.Instance.buildStage)
         {
             case "SANDBOX":
                 return "https://okto-sandbox.firebaseapp.com/#/login_screen"; 
@@ -46,12 +56,12 @@ public class OnboardingManager : MonoBehaviour
         }
     }
 
-    public void loggedIn()
+    private void initOnboarding()
     {
         webViewObject = gameObject.AddComponent<WebViewObject>();
 
         webViewObject.Init(
-            cb: (msg) => OnMessageReceived(msg),
+            cb: (msg) => OnMessageReceivedAsync(msg),
             ld: (msg) =>
             {
                 Debug.Log($"Page Loaded: {msg}");
@@ -66,8 +76,8 @@ public class OnboardingManager : MonoBehaviour
     void InjectJavaScript()
     {
         string injectJs = $@"
-    window.localStorage.setItem('ENVIRONMENT', '{DataManager.Instance.buildStage}');
-    window.localStorage.setItem('API_KEY', '{DataManager.Instance.apiKey}');
+    window.localStorage.setItem('ENVIRONMENT', '{OktoProviderSDK.Instance.buildStage}');
+    window.localStorage.setItem('API_KEY', '{OktoProviderSDK.Instance.apiKey}');
     window.localStorage.setItem('textPrimaryColor', '{textPrimaryColor}');
     window.localStorage.setItem('textSecondaryColor', '{textSecondaryColor}');
     window.localStorage.setItem('textTertiaryColor', '{textTertiaryColor}');
@@ -120,7 +130,7 @@ public class OnboardingManager : MonoBehaviour
         closeWebViewButton.gameObject.SetActive(true);
         closeWebViewButton.onClick.AddListener(CloseWebView);
     }
-    private void OnMessageReceived(string message)
+    private async Task OnMessageReceivedAsync(string message)
     {
         Debug.Log("Message Received: " + message);
         if (message.Contains("auth_success"))
@@ -128,13 +138,30 @@ public class OnboardingManager : MonoBehaviour
             MessageData messageVal = JsonUtility.FromJson<MessageData>(message);
             string authToken = messageVal.data.auth_token;
             string refreshAuthToken = messageVal.data.refresh_auth_token;
+            OktoProviderSDK.Instance.AuthToken = authToken;
+            OktoProviderSDK.Instance.DeviceToken = refreshAuthToken;
             Debug.Log($"Auth Success: {authToken}");
             OnLoginSuccess(authToken);
             CloseWebView();
         }
         else if (message.Contains("g_auth"))
         {
-            uiManager.oktoProvider.LoginGoogle();
+            AuthDetails authenticationData;
+            Exception error;
+            (authenticationData, error) = await OktoProviderSDK.Instance.LoginGoogle();
+
+            if (error != null)
+            {
+                Debug.LogError($"Login failed with error: {error.Message}");
+            }
+            else
+            {
+                Debug.Log("Login successful!");
+            }
+            Debug.Log("loginDone " + authenticationData.authToken);
+            OktoProviderSDK.Instance.AuthToken = authenticationData.authToken;
+            OktoProviderSDK.Instance.DeviceToken = authenticationData.deviceToken;
+            OktoProviderSDK.Instance.RefreshToken = authenticationData.refreshToken;
             CloseWebView();
         }
         else if (message.Contains("copy_text"))
@@ -163,8 +190,7 @@ public class OnboardingManager : MonoBehaviour
 
     private void OnLoginSuccess(string authToken)
     {
-        uiManager.authenticationCompleted(authToken);
-        Debug.Log("Login Success Callback Invoked");
+        Debug.Log("Login Success Callback Invoked " + authToken);
     }
 
     private void CloseWebView()

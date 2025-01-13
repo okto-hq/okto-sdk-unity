@@ -1,3 +1,4 @@
+using OktoProvider;
 using UnityEngine;
 using UnityEngine.UI; 
 
@@ -67,9 +68,9 @@ public class OktoWebViewWidget : MonoBehaviour
 
     void InjectJavaScript()
     {
-        string authToken = DataManager.Instance.AuthToken;
+        string authToken = OktoProviderSDK.Instance.AuthToken;
         string injectJs = $@"
-            window.localStorage.setItem('ENVIRONMENT', '{DataManager.Instance.buildStage}');
+            window.localStorage.setItem('ENVIRONMENT', '{OktoProviderSDK.Instance.buildStage}');
             window.localStorage.setItem('textPrimaryColor', '{defaultTheme.textPrimaryColor}');
             window.localStorage.setItem('textSecondaryColor', '{defaultTheme.textSecondaryColor}');
             window.localStorage.setItem('textTertiaryColor', '{defaultTheme.textTertiaryColor}');
