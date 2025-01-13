@@ -34,6 +34,10 @@ public class OnboardingManager : MonoBehaviour
     private void Awake()
     {
         OktoProviderSDK.OnSDKInitialized += initOnboarding; // Subscribe to the event
+        if (OktoProviderSDK.Instance != null) // If SDK is already initialized
+        {
+            initOnboarding();
+        }
     }
 
     private void OnDestroy()
