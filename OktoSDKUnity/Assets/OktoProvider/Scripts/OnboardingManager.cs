@@ -72,6 +72,9 @@ public class OnboardingManager : MonoBehaviour
                 InjectJavaScript();
             }
         );
+        string url = GetBuildUrl();
+        webViewObject.LoadURL(url);
+        webViewObject.SetMargins(0, 80, 0, 80);
         webViewObject.SetVisibility(false);
         if (openOnboardingButton != null)
             openOnboardingButton.onClick.AddListener(OpenOnboarding);
@@ -122,17 +125,13 @@ public class OnboardingManager : MonoBehaviour
 
     public void OpenOnboarding()
     {
-
-        // Set the screen orientation to Portrait
         Screen.orientation = ScreenOrientation.Portrait;
-        string url = GetBuildUrl();
-        webViewObject.LoadURL(url);
-        webViewObject.SetMargins(0, 80, 0, 80);
         webViewObject.SetVisibility(true);
-
-
-        closeWebViewButton.gameObject.SetActive(true);
-        closeWebViewButton.onClick.AddListener(CloseWebView);
+        if(closeWebViewButton != null)
+        {
+            closeWebViewButton.gameObject.SetActive(true);
+            closeWebViewButton.onClick.AddListener(CloseWebView);
+        }
     }
     private async Task OnMessageReceivedAsync(string message)
     {
@@ -199,10 +198,13 @@ public class OnboardingManager : MonoBehaviour
 
     private void CloseWebView()
     {
-        closeWebViewButton.onClick.RemoveListener(CloseWebView);
-        closeWebViewButton.gameObject.SetActive(false);
         webViewObject.SetVisibility(false);
-        Screen.orientation = ScreenOrientation.LandscapeLeft;
+        Screen.orientation = ScreenOrientation.AutoRotation;
+        if (closeWebViewButton != null)
+        {
+            closeWebViewButton.onClick.RemoveListener(CloseWebView);
+            closeWebViewButton.gameObject.SetActive(false);
+        }
     }
 
     [Serializable]

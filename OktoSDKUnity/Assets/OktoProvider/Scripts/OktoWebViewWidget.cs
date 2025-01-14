@@ -36,7 +36,8 @@ public class OktoWebViewWidget : MonoBehaviour
                 InjectJavaScript();
             }
         );
-
+        webView.LoadURL(widgetUrl);
+        webView.SetMargins(10, 150, 10, 150);
         webView.SetVisibility(false); 
 
         if (showModalButton != null)
@@ -45,17 +46,15 @@ public class OktoWebViewWidget : MonoBehaviour
         }
     }
 
-    void OpenWebView()
+    public void OpenWebView()
     {
         Screen.orientation = ScreenOrientation.Portrait;
-        webView.LoadURL(widgetUrl);
-        webView.SetMargins(10, 150, 10, 150); 
         webView.SetVisibility(true);
         closeButton.gameObject.SetActive(true);
         closeButton.onClick.AddListener(closeWebView);
     }
 
-    void closeWebView()
+    public void closeWebView()
     {
         if (webView != null)
         {
