@@ -34,7 +34,7 @@ public class CredentialsEditor : EditorWindow
 
             if (GUI.changed)
             {
-                EditorUtility.SetDirty(credentials); 
+                EditorUtility.SetDirty(credentials);
                 AssetDatabase.SaveAssets();
             }
         }
@@ -42,8 +42,16 @@ public class CredentialsEditor : EditorWindow
 
     private Credentials CreateCredentialsAsset()
     {
+        // Ensure the Resources folder exists
+        string resourcesFolderPath = "Assets/Resources";
+        if (!AssetDatabase.IsValidFolder(resourcesFolderPath))
+        {
+            AssetDatabase.CreateFolder("Assets", "Resources");
+        }
+
+        // Create the Credentials asset
         var asset = ScriptableObject.CreateInstance<Credentials>();
-        AssetDatabase.CreateAsset(asset, "Assets/Resources/Credentials.asset");
+        AssetDatabase.CreateAsset(asset, $"{resourcesFolderPath}/Credentials.asset");
         AssetDatabase.SaveAssets();
         return asset;
     }

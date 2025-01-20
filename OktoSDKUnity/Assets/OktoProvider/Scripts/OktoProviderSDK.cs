@@ -82,7 +82,7 @@ namespace OktoProvider
             };
 
 #else
-            Debug.LogWarning("Google Sign-In is not enabled. Please add IOS_GOOGLE_LOGIN to scripting define symbols.");
+            Debug.Log("Google Sign-In is not enabled. Please add GOOGLE_LOGIN to scripting define symbols.");
 
 #endif
         }
@@ -123,7 +123,7 @@ namespace OktoProvider
                 Debug.Log("Sign-In was canceled.");
                 return (null, null); // Return null if sign-in is canceled
 #else
-            Debug.LogWarning("Google Sign-In is not enabled. Please add IOS_GOOGLE_LOGIN to scripting define symbols.");
+            Debug.LogWarning("Google Sign-In is not enabled. Please add GOOGLE_LOGIN to scripting define symbols.");
             return (null, null);
 #endif
         }

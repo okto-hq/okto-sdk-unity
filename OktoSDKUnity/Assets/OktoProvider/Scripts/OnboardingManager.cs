@@ -3,13 +3,13 @@ using System;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 public class OnboardingManager : MonoBehaviour
 {
     [Header("WebView Configuration")]
     public Button openOnboardingButton;
-    public Button closeWebViewButton;
     public enum AuthType { Email, Phone, GAuth }
     public AuthType authType = AuthType.Email;
 
@@ -31,6 +31,9 @@ public class OnboardingManager : MonoBehaviour
 
     private WebViewObject webViewObject;
 
+    [SerializeField]
+    private UnityEvent onLoggedIn;
+
     private void Awake()
     {
         OktoProviderSDK.OnSDKInitialized += initOnboarding; // Subscribe to the event
@@ -50,7 +53,7 @@ public class OnboardingManager : MonoBehaviour
         switch (OktoProviderSDK.Instance.buildStage)
         {
             case "SANDBOX":
-                return "https://okto-sandbox.firebaseapp.com/#/login_screen"; 
+                return "https://okto-sandbox.firebaseapp.com/#/login_screen";
             case "STAGING":
                 return "https://3p.oktostage.com/#/login_screen";
             case "PRODUCTION":
@@ -74,10 +77,23 @@ public class OnboardingManager : MonoBehaviour
         );
         string url = GetBuildUrl();
         webViewObject.LoadURL(url);
-        webViewObject.SetMargins(0, 80, 0, 80);
+        webViewObject.SetMargins(0, 0, 0, 0);
         webViewObject.SetVisibility(false);
         if (openOnboardingButton != null)
             openOnboardingButton.onClick.AddListener(OpenOnboarding);
+    }
+
+    public void UnsubscribeFromMessages()
+    {
+        webViewObject.Init(
+            cb: null, // Unsubscribe by passing null
+            ld: (msg) =>
+            {
+                Debug.Log($"Page Loaded: {msg}");
+                InjectJavaScript();
+            }
+        );
+
     }
 
     void InjectJavaScript()
@@ -120,18 +136,14 @@ public class OnboardingManager : MonoBehaviour
         ";
         injectJs += jsCode;
         webViewObject.EvaluateJS(injectJs);
-       
+
     }
 
     public void OpenOnboarding()
     {
         Screen.orientation = ScreenOrientation.Portrait;
+
         webViewObject.SetVisibility(true);
-        if(closeWebViewButton != null)
-        {
-            closeWebViewButton.gameObject.SetActive(true);
-            closeWebViewButton.onClick.AddListener(CloseWebView);
-        }
     }
     private async Task OnMessageReceivedAsync(string message)
     {
@@ -146,6 +158,7 @@ public class OnboardingManager : MonoBehaviour
             Debug.Log($"Auth Success: {authToken}");
             OnLoginSuccess(authToken);
             CloseWebView();
+            UnsubscribeFromMessages();
         }
         else if (message.Contains("g_auth"))
         {
@@ -169,8 +182,12 @@ public class OnboardingManager : MonoBehaviour
         }
         else if (message.Contains("copy_text"))
         {
-            string copiedText = GUIUtility.systemCopyBuffer; 
+            string copiedText = GUIUtility.systemCopyBuffer;
             SendCopiedTextToWebsite(copiedText);
+        }
+        else if (message.Contains("go_back"))
+        {
+            CloseWebView();
         }
     }
 
@@ -194,17 +211,13 @@ public class OnboardingManager : MonoBehaviour
     private void OnLoginSuccess(string authToken)
     {
         Debug.Log("Login Success Callback Invoked " + authToken);
+        onLoggedIn?.Invoke();
     }
 
     private void CloseWebView()
     {
         webViewObject.SetVisibility(false);
         Screen.orientation = ScreenOrientation.AutoRotation;
-        if (closeWebViewButton != null)
-        {
-            closeWebViewButton.onClick.RemoveListener(CloseWebView);
-            closeWebViewButton.gameObject.SetActive(false);
-        }
     }
 
     [Serializable]
