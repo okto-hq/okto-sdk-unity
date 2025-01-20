@@ -1,13 +1,18 @@
 using OktoProvider;
 using UnityEngine;
-using UnityEngine.UI; 
+using UnityEngine.UI;
 
 public class OktoWebViewWidget : MonoBehaviour
 {
     private WebViewObject webView;
-    public Button showModalButton; 
-    public Button closeButton; 
-    private string widgetUrl = "https://3p.okto.tech/"; 
+    public Button showModalButton;
+    public Button closeButton;
+    private string widgetUrl = "https://okto-sandbox.firebaseapp.com/#/home";
+
+    private Vector2 touchStartPosition;
+    private bool isSwipingDown = false;
+
+    public int topMargin = 300;
 
     [System.Serializable]
     public class Theme
@@ -37,8 +42,8 @@ public class OktoWebViewWidget : MonoBehaviour
             }
         );
         webView.LoadURL(widgetUrl);
-        webView.SetMargins(10, 150, 10, 150);
-        webView.SetVisibility(false); 
+        webView.SetMargins(0, topMargin, 0, 0);
+        webView.SetVisibility(false);
 
         if (showModalButton != null)
         {
@@ -58,11 +63,11 @@ public class OktoWebViewWidget : MonoBehaviour
     {
         if (webView != null)
         {
-            webView.SetVisibility(false); 
+            webView.SetVisibility(false);
         }
         closeButton.onClick.RemoveListener(closeWebView);
         closeButton.gameObject.SetActive(false);
-        Screen.orientation = ScreenOrientation.LandscapeLeft;
+        Screen.orientation = ScreenOrientation.AutoRotation;
     }
 
     void InjectJavaScript()
@@ -91,15 +96,31 @@ public class OktoWebViewWidget : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+
+        // Swipe detection logic
+        if (Input.touchCount > 0)
         {
-            if (webView.CanGoBack())
+            Touch touch = Input.GetTouch(0);
+
+            switch (touch.phase)
             {
-                webView.GoBack();
-            }
-            else
-            {
-                webView.SetVisibility(false); 
+                case TouchPhase.Began:
+                    touchStartPosition = touch.position;
+                    isSwipingDown = false;
+                    break;
+                case TouchPhase.Moved:
+                    // Detect swipe down gesture
+                    if (touch.position.y < touchStartPosition.y - 50) // swipe down threshold (e.g., 50 units)
+                    {
+                        isSwipingDown = true;
+                    }
+                    break;
+                case TouchPhase.Ended:
+                    if (isSwipingDown)
+                    {
+                        closeWebView();
+                    }
+                    break;
             }
         }
     }
