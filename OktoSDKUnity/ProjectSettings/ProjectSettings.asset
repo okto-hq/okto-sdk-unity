@@ -833,7 +833,7 @@ PlayerSettings:
   webGLMemoryGeometricGrowthCap: 96
   webGLPowerPreference: 2
   scriptingDefineSymbols:
-    Android: ENABLE_GOOGLE_PLAY_GAMES
+    Android: GOOGLE_LOGIN
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:

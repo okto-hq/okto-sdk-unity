@@ -17,6 +17,7 @@
 /OktoSDKUnityIOS/[Bb]uilds/
 /OktoSDKUnityIOS/[Ll]ogs/
 /OktoSDKUnityIOS/[Mm]emoryCaptures/
+IOSBuild/Libraries/*.a
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta

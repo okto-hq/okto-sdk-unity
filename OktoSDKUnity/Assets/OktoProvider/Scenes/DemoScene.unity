@@ -10690,7 +10690,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 67e7f67165a86224b8634f127fac370b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  webClientId: 
+  webClientId: 60819039875-fm7m3eqdhbii8607p9vrbr1bf2iocvv1.apps.googleusercontent.com
 --- !u!1 &947451637
 GameObject:
   m_ObjectHideFlags: 0

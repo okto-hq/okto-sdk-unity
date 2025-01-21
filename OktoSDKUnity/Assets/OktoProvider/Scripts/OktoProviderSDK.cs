@@ -39,7 +39,10 @@ namespace OktoProvider
         public string apiKey { get; set; }
         public string buildStage { get; set; }
 
+#if GOOGLE_LOGIN
         [SerializeField] private String webClientId;
+#endif
+
 
         private void Awake()
         {
