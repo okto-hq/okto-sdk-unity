@@ -7,7 +7,7 @@ public class OktoWebViewWidget : MonoBehaviour
     private WebViewObject webView;
     public Button showModalButton;
     public Button closeButton;
-    private string widgetUrl = "https://okto-sandbox.firebaseapp.com/#/home";
+    private string widgetUrl = "https://3p-sandbox.okto.tech/#/home";
 
     private Vector2 touchStartPosition;
     private bool isSwipingDown = false;
