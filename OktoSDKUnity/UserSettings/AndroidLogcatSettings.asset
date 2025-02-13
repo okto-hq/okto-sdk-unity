@@ -3,29 +3,11 @@
     "m_SelectedPackage": {
         "deviceId": "MJWCX4FQJVQ8QC9P",
         "name": "com.DefaultCompany.OktoWalletSDK",
-        "processId": 20929,
+        "processId": 24607,
         "exited": false
     },
     "m_SelectedPriority": 1,
     "m_KnownPackagesForSerialization": [
-        {
-            "deviceId": "MJWCX4FQJVQ8QC9P",
-            "name": "com.DefaultCompany.OktoWalletSDK",
-            "processId": 29267,
-            "exited": true
-        },
-        {
-            "deviceId": "MJWCX4FQJVQ8QC9P",
-            "name": "com.DefaultCompany.OktoWalletSDK",
-            "processId": 30413,
-            "exited": true
-        },
-        {
-            "deviceId": "MJWCX4FQJVQ8QC9P",
-            "name": "com.DefaultCompany.OktoWalletSDK",
-            "processId": 2508,
-            "exited": true
-        },
         {
             "deviceId": "MJWCX4FQJVQ8QC9P",
             "name": "com.DefaultCompany.OktoWalletSDK",
@@ -36,6 +18,24 @@
             "deviceId": "MJWCX4FQJVQ8QC9P",
             "name": "com.DefaultCompany.OktoWalletSDK",
             "processId": 20929,
+            "exited": true
+        },
+        {
+            "deviceId": "MJWCX4FQJVQ8QC9P",
+            "name": "com.DefaultCompany.OktoWalletSDK",
+            "processId": 12641,
+            "exited": true
+        },
+        {
+            "deviceId": "MJWCX4FQJVQ8QC9P",
+            "name": "com.DefaultCompany.Myproject",
+            "processId": 11603,
+            "exited": true
+        },
+        {
+            "deviceId": "MJWCX4FQJVQ8QC9P",
+            "name": "com.DefaultCompany.OktoWalletSDK",
+            "processId": 24607,
             "exited": false
         }
     ],

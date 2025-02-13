@@ -53,9 +53,9 @@ public class OnboardingManager : MonoBehaviour
         switch (OktoProviderSDK.Instance.buildStage)
         {
             case "SANDBOX":
-                return "https://okto-sandbox.firebaseapp.com/#/login_screen";
+                return "https://3p-sandbox.okto.tech/#/login_screen";
             case "STAGING":
-                return "https://3p.oktostage.com/#/login_screen";
+                return "https://3p-sandbox.okto.tech/#/login_screen";
             case "PRODUCTION":
                 return "https://3p.okto.tech/login_screen/#/login_screen";
             default:
